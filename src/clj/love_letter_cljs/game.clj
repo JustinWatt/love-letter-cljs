@@ -1,4 +1,5 @@
-(ns love-letter-cljs.game)
+(ns love-letter-cljs.game
+  (:require [clojure.set :as set]))
 
 (def cards [{:face :guard    :value 1 :count 5}
             {:face :priest   :value 2 :count 2}
@@ -34,31 +35,7 @@
   {:deck (generate-deck)
    :discard-pile []
    :players (add-players 4)
-   :player-turn 1})
-
-;; {:deck
-;;  [{:face :priest,   :value 2}
-;;   {:face :guard,    :value 1}
-;;   {:face :guard,    :value 1}
-;;   {:face :handmaid, :value 4}
-;;   {:face :handmaid, :value 4}
-;;   {:face :baron,    :value 3}
-;;   {:face :baron,    :value 3}
-;;   {:face :princess, :value 8}
-;;   {:face :countess, :value 7}
-;;   {:face :king,     :value 6}
-;;   {:face :guard,    :value 1}
-;;   {:face :guard,    :value 1}
-;;   {:face :priest,   :value 2}
-;;   {:face :prince,   :value 5}
-;;   {:face :guard,    :value 1}
-;;   {:face :prince,   :value 5}],
-;;  :discard-pile [],
-;;  :players  {1 {:id 1, :hand [], :alive? true},
-;;             2 {:id 2, :hand [], :alive? true},
-;;             3 {:id 3, :hand [], :alive? true},
-;;             4 {:id 4, :hand [], :alive? true}},
-;;  :player-turn 1}
+   :current-player 1})
 
 (defn draw-card [game player]
   (let [deck (:deck game)]
@@ -68,7 +45,7 @@
 
 (defn deal-cards [game]
   (let [players (keys (game :players))]
-    (loop [game game
+    (loop [game    game
            players players]
       (if (empty? players)
         game
@@ -99,7 +76,8 @@
         target-card (reveal-card game target)]
     (condp #(%1 (:value player-card) %2) (:value target-card)
         > (kill-player game target)
-        < (kill-player game player) = game)))
+        < (kill-player game player)
+        = game)))
 
 (defn guard-ability [game guess target]
   (let [target-card (reveal-card game target)]
@@ -154,3 +132,36 @@
 (defn game-complete? [game]
   (or (= 1 (count-alive game))
       (empty? (:deck game))))
+
+(defn countess-check [game player]
+  (let [hand (get-in game [:players player :hand])]
+    (->> hand
+         (map :face)
+         set
+         (set/intersection #{:prince :king :princess})
+         empty?
+         not)))
+
+(defn- valid-target? [current-player player]
+  (and (not= current-player (:id player))
+       (or (:protected? player)
+           (:alive? player))))
+
+(defn valid-targets [game]
+  (let [current-player (:current-player game)]
+    (-> game
+        :players
+        vals
+        (->>
+         (filter #(valid-target? current-player %))
+         (map :id)))))
+
+(defn card-action [game face]
+  (let [current-player (:current-player game)]
+    (face
+     {:guard     (partial guard-ability    game)
+      :priest    (partial reveal-card      game)
+      :baron     (partial baron-ability    game current-player)
+      :handmaid  (partial handmaid-ability game current-player)
+      :prince    (partial prince-ability   game current-player)
+      :king      (partial king-ability     game)})))
