@@ -1,4 +1,4 @@
-(ns love-letter-cljs.db)
+(ns love-letter-cljs.db
+  [:require [love-letter-cljs.game :refer [create-game]]])
 
-(def default-db
-  {:name "re-frame"})
+(def default-db {:game (create-game)})
