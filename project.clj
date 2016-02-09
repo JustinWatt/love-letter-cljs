@@ -2,20 +2,30 @@
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "1.7.170"]
                  [reagent "0.5.1"]
-                 [re-frame "0.6.0"]]
+                 [re-frame "0.6.0"]
+                 [prismatic/schema "1.0.4"]]
 
   :min-lein-version "2.5.3"
 
   :source-paths ["src/clj"]
 
   :plugins [[lein-cljsbuild "1.1.1"]
-            [lein-figwheel "0.5.0-2"]
+            [lein-figwheel "0.5.0-6"]
             [lein-doo "0.1.6"]]
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"
                                     "test/js"]
 
   :figwheel {:css-dirs ["resources/public/css"]}
+
+  :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]
+                                  [figwheel-sidecar "0.5.0-1"]]
+                   :source-paths ["cljs_src" "dev"]}
+             :repl {:plugins [[cider/cider-nrepl "0.10.1"]]}}
+
+  :figwheel-options {:port 7888}
+
+  :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
 
   :cljsbuild {:builds [{:id "dev"
                         :source-paths ["src/cljs"]
