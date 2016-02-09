@@ -20,7 +20,8 @@
 (defn create-player [n]
   {:id n
    :hand []
-   :alive? true})
+   :alive? true
+   :protected? false})
 
 (defn create-players [n]
   (for [p (range 1 (inc n))]
@@ -34,23 +35,25 @@
 (defn create-game []
   {:deck (generate-deck)
    :discard-pile []
+   :burn-pile []
    :players (add-players 4)
    :current-player 1})
 
-(defn draw-card [game player]
+(defn draw-card [game player-id]
   (let [deck (:deck game)]
     (-> game
-        (update-in [:players player :hand] into (take 1 deck))
-        (assoc-in [:deck] (drop 1 deck)))))
+        (update-in [:players player-id :hand] into (take 1 deck))
+        (assoc-in  [:deck] (drop 1 deck)))))
 
 (defn deal-cards [game]
-  (let [players (keys (game :players))]
-    (loop [game    game
-           players players]
-      (if (empty? players)
-        game
-        (recur (draw-card game (first players))
-               (rest players))))))
+  (let [player-ids (keys (:players game))]
+    (reduce draw-card game player-ids)))
+
+(defn burn-card [game]
+  (let [cards (:deck game)]
+    (-> game
+        (update-in [:burn-pile] into (vec (take 1 cards)))
+        (assoc :deck (drop 1 cards)))))
 
 (defn discard-card [game source]
   (let [cards (get-in game source)]
@@ -65,11 +68,14 @@
 
 (defn create-and-deal []
   (-> (create-game)
+      (burn-card)
       (deal-cards)))
 
 (defn- kill-player
   [game target]
-  (update-in game [:players target :alive?] not))
+  (-> game
+      (update-in [:players target :alive?] not)
+      (discard-card [:players target :hand])))
 
 (defn baron-ability [game player target]
   (let [player-card (reveal-card game player)
@@ -155,13 +161,3 @@
         (->>
          (filter #(valid-target? current-player %))
          (map :id)))))
-
-(defn card-action [game face]
-  (let [current-player (:current-player game)]
-    (face
-     {:guard     (partial guard-ability    game)
-      :priest    (partial reveal-card      game)
-      :baron     (partial baron-ability    game current-player)
-      :handmaid  (partial handmaid-ability game current-player)
-      :prince    (partial prince-ability   game current-player)
-      :king      (partial king-ability     game)})))
