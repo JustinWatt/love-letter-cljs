@@ -45,17 +45,31 @@
 (register-handler
  :set-active-card
  (fn [db [_ face]]
-   (assoc-in db [:state :active-card] face)))
+   (as-> db d
+     (assoc-in d [:state :active-card] face)
+     (condp = face
+       :princess (assoc-in d [:state :phase] :resolution)
+       :guard    (assoc-in d [:state :phase] :guard)
+       (assoc-in d [:state :phase] :target)))))
 
 (register-handler
  :set-target
  (fn [db [_ target-id]]
-   (assoc-in db [:state :card-target] target-id)))
+   (let [active-card (:state (:active-card db))]
+     (as-> db d
+       (assoc-in d [:state :card-target] target-id)
+       (condp = active-card
+         :guard (assoc-in d [:state :phase] :guard)
+         (assoc-in d [:state :phase] :resolution))))))
 
 (register-handler
  :set-guard-guess
  (fn [db [_ face]]
-   (assoc-in db [:state :guard-guess] face)))
+   (as-> db d
+     (assoc-in d [:state :guard-guess] face)
+     (condp = face
+       :guard (assoc-in d [:state :phase] :guard)
+       (assoc-in d [:state :phase] :resolution )))))
 
 ;; For cycling turns
 (defn next-in-list [current item-list]

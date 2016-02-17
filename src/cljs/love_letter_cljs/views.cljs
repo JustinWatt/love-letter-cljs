@@ -18,10 +18,7 @@
 
 (defn play-button [face]
   [:button {:type "button"
-            :on-click #(do (dispatch [:set-active-card face])
-                           (if (= :guard face)
-                             (dispatch [:set-phase :guard])
-                             (dispatch [:set-phase :target])))} (name face)])
+            :on-click #(dispatch [:set-active-card face])} (name face)])
 
 (defn card-list-with-button [deck phase]
   [:ul
@@ -64,8 +61,7 @@
         (for [t @targets]
           ^{:key (str "target-" t)}
           [:button {:id (str "target-" t)
-                    :on-click #(do (dispatch [:set-target t])
-                                   (dispatch [:set-phase :resolution]))} (str "Player " t)])]])))
+                    :on-click #(dispatch [:set-target t])} (str "Player " t)])]])))
 
 (def card-faces
   [:priest
