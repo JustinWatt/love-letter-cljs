@@ -100,15 +100,14 @@
         (assoc-in [:players target :hand] player-card))))
 
 (defn prince-ability [game target]
-  (let [target-card (:face (first (get-in game [:players target :hand])))]
+  (let [target-card (reveal-card game target)]
     (if (= :princess target-card) (kill-player game target)
         (-> game
             (discard-card [:players target :hand])
             (draw-card target)))))
 
 (defn handmaid-ability [game player]
-  (-> game
-      (assoc-in [:players player :protected?] true)))
+  (assoc-in game [:players player :protected?] true))
 
 (defn score-hand [player]
   (let [hand (player :hand)]
@@ -152,8 +151,8 @@
 
 (defn- valid-target? [current-player player]
   (and (not= current-player (:id player))
-       (or (:protected? player)
-           (:alive? player))))
+       (and (not (:protected? player))
+            (:alive? player))))
 
 (defn valid-targets [game]
   (let [current-player (:current-player game)]
@@ -163,3 +162,7 @@
         (->>
          (filter #(valid-target? current-player %))
          (map :id)))))
+
+(defn remove-protection [game]
+  (let [current-player (:current-player game)]
+    (assoc-in game [:players current-player :protected?] false)))
