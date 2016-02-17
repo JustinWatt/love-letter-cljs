@@ -37,10 +37,13 @@
  (fn [db [_ player-id]]
    (assoc-in db [:game] (l/draw-card (:game db) player-id))))
 
+(defn set-phase [db phase]
+  (assoc-in db [:state :phase] phase))
+
 (register-handler
  :set-phase
  (fn [db [_ phase]]
-   (assoc-in db [:state :phase] phase)))
+   (set-phase db phase)))
 
 (register-handler
  :set-active-card
@@ -48,9 +51,9 @@
    (as-> db d
      (assoc-in d [:state :active-card] face)
      (condp = face
-       :princess (assoc-in d [:state :phase] :resolution)
-       :guard    (assoc-in d [:state :phase] :guard)
-       (assoc-in d [:state :phase] :target)))))
+       :princess (set-phase d :resolution)
+       :guard    (set-phase d :guard)
+       (set-phase d :target)))))
 
 (register-handler
  :set-target
@@ -59,8 +62,8 @@
      (as-> db d
        (assoc-in d [:state :card-target] target-id)
        (condp = active-card
-         :guard (assoc-in d [:state :phase] :guard)
-         (assoc-in d [:state :phase] :resolution))))))
+         :guard (set-phase d :guard)
+         (set-phase d :resolution))))))
 
 (register-handler
  :set-guard-guess
@@ -68,8 +71,8 @@
    (as-> db d
      (assoc-in d [:state :guard-guess] face)
      (condp = face
-       :guard (assoc-in d [:state :phase] :guard)
-       (assoc-in d [:state :phase] :resolution )))))
+       :guard (set-phase d :guard)
+       (set-phase d :resolution)))))
 
 ;; For cycling turns
 (defn next-in-list [current item-list]
