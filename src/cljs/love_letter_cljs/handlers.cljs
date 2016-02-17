@@ -116,10 +116,14 @@
         current-player (:current-player game)
         card-effect    (active-card card-abilities)]
     (condp = active-card
-      :prince  (assoc db :game (card-effect game card-target))
-      :guard (assoc db :game (card-effect game guard-guess card-target))
-      :baron (assoc db :game (card-effect game current-player card-target))
+      :prince (assoc db :game (card-effect game card-target))
+      :guard  (assoc db :game (card-effect game guard-guess card-target))
+      :baron  (assoc db :game (card-effect game current-player card-target))
+      :king   (assoc db :game (card-effect game current-player card-target))
+      :handmaid (assoc db :game (card-effect game current-player))
       :countess db
+      :priest   db
+      :princess (assoc db :game (l/kill-player game current-player))
       (assoc db :game (card-effect game current-player card-target)))))
 
 (register-handler

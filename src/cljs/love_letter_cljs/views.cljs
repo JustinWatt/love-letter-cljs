@@ -34,19 +34,18 @@
                            (dispatch [:set-phase :play]))} "Draw"])
 
 (defn player-component [player]
-  (let [{:keys [id hand alive?]} player]
+  (let [{:keys [id hand alive? protected?]} player]
     [:div.col-md-6
-     [:h5 (str "Player " id (when-not alive? " Out") ":")]
+     [:h5 (str "Player " id (when-not alive? " Out") (when protected? " Protected") ":")]
      [card-list hand]
-     [draw-button id]]))
+     (when alive? [draw-button id])]))
 
 (defn command-panel []
   [:div
    [:button {:on-click #(dispatch [:new-game])} "new game"]])
 
 (defn card-display []
-  (let [card (subscribe [:display-card])
-        db   (subscribe [:db])]
+  (let [card (subscribe [:display-card])]
     (fn []
       (let [{:keys [face value text]} @card]
         [:div
@@ -102,7 +101,8 @@
         players        (subscribe [:players])
         burn-pile      (subscribe [:burn-pile])
         current-player (subscribe [:current-player])
-        app-state      (subscribe [:app-state])]
+        app-state      (subscribe [:app-state])
+        db             (subscribe [:db])]
     (fn []
       [:div.container-fluid
        [:div.row
