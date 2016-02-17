@@ -100,9 +100,11 @@
         (assoc-in [:players target :hand] player-card))))
 
 (defn prince-ability [game target]
-  (-> game
-      (discard-card [:player target :hand])
-      (draw-card target)))
+  (let [target-card (:face (first (get-in game [:players target :hand])))]
+    (if (= :princess target-card) (kill-player game target)
+        (-> game
+            (discard-card [:players target :hand])
+            (draw-card target)))))
 
 (defn handmaid-ability [game player]
   (-> game
