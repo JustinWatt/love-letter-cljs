@@ -89,9 +89,11 @@
  re-frame.core/debug
  (fn [db _]
    (let [current-player (:current-player (:game db))
-         players        (player-list (:game db))]
-     (assoc-in db [:game :current-player]
-               (next-in-list current-player players)))))
+         players        (player-list (:game db))
+         next-player    (next-in-list current-player players)]
+     (-> db
+         (assoc-in [:game :current-player] next-player)
+         (assoc-in [:game :players next-player :protected?] false)))))
 
 (def card-abilities
   {:guard    l/guard-ability
