@@ -66,3 +66,9 @@
  :app-state
  (fn [db]
    (reaction (:state @db))))
+
+(register-sub
+ :log
+ (fn [db]
+   (let [state (subscribe [:app-state])]
+     (reaction (:log @state)))))

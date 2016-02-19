@@ -96,6 +96,15 @@
                                                (dispatch [:reset-state]))} "Resolve"]]
          [:div "error"])])))
 
+(defn log-panel []
+  (let [log (subscribe [:log])]
+    (fn []
+      [:div
+       [:h3 "Game Log:"]
+       [:ul
+        (map-indexed (fn [id {date :date message :message from :from}]
+                       ^{:key id}[:li (str date "| " from "> " message)]) (take 10 @log))]])))
+
 (defn main-panel []
   (let [deck           (subscribe [:deck])
         players        (subscribe [:players])
@@ -125,6 +134,9 @@
          [card-display]]]
 
        [:div.row
-        [:div.col-md-6.col-sm-6
+        [:div.col-md-6.col-sm-6.col-xs-6
          [:h1 (str "Current Player: " @current-player)]
-         [game-controls]]]])))
+         [game-controls]]
+
+        [:div.col-md-6.col-sm-6.col-xs-6
+         [log-panel]]]])))

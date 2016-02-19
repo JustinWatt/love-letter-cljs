@@ -31,7 +31,8 @@
            :phase        (s/enum :draw :play :guard :target :resolution)
            :active-card  (s/maybe card-face)
            :guard-guess  (s/maybe card-face)
-           :card-target  (s/maybe player-id)}})
+           :card-target  (s/maybe player-id)
+           :log          [(s/maybe {:time s/Str :message s/Str})]}})
 
 (def default-db {:game  (create-and-deal)
 
@@ -39,6 +40,5 @@
                          :phase :draw
                          :active-card nil
                          :guard-guess nil
-                         :card-target nil}})
-
-
+                         :card-target nil
+                         :log [{:from "System" :date (.toLocaleTimeString (js/Date.)) :message "Welcome to the Game"}]}})
