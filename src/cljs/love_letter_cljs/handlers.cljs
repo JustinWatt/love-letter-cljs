@@ -3,39 +3,46 @@
               [love-letter-cljs.db :as db]
               [love-letter-cljs.game :as l]))
 
+(defn remove-first [face coll]
+  (let [[pre post] (split-with #(not= face (:face %)) coll)]
+    (vec (concat pre (rest post)))))
+
 (register-handler
  :initialize-db
  (fn  [_ _]
    db/default-db))
 
-(def reset-state
-  {:display-card nil
-   :phase :draw
-   :active-card nil
-   :guard-guess nil
-   :card-target nil})
+(defn reset-state [db]
+  (assoc-in db [:state]
+            {:display-card nil
+             :phase :draw
+             :active-card nil
+             :guard-guess nil
+             :card-target nil
+             :log []}))
 
 (register-handler
  :new-game
  (fn [db _]
    (-> db
-       (assoc-in [:state] reset-state)
-       (assoc-in [:game]  (l/create-and-deal)))))
+       (reset-state)
+       (assoc-in [:game] (l/create-and-deal)))))
 
 (register-handler
  :reset-state
  (fn [db _]
-    (assoc-in db [:state] reset-state)))
+    (reset-state db)))
 
 (register-handler
  :set-display-card
  (fn [db [_ face]]
    (assoc-in db [:state :display-card] face)))
 
-(register-handler
- :draw-card
- (fn [db [_ player-id]]
-   (assoc-in db [:game] (l/draw-card (:game db) player-id))))
+(defn handle-countess [db player-id]
+  (let [path  [:game :players player-id :hand]
+        hand  (get-in db path)
+        hand' (remove-first :countess hand)]
+    (assoc-in db path hand')))
 
 (defn set-phase [db phase]
   (assoc-in db [:state :phase] phase))
@@ -52,13 +59,13 @@
      (assoc-in d [:state :active-card] face)
      (condp = face
        :princess (set-phase d :resolution)
-       :guard    (set-phase d :guard)
+       :handmaid (set-phase d :resolution)
        (set-phase d :target)))))
 
 (register-handler
  :set-target
  (fn [db [_ target-id]]
-   (let [active-card (:state (:active-card db))]
+   (let [active-card (:active-card (:state db))]
      (as-> db d
        (assoc-in d [:state :card-target] target-id)
        (condp = active-card
@@ -68,11 +75,9 @@
 (register-handler
  :set-guard-guess
  (fn [db [_ face]]
-   (as-> db d
-     (assoc-in d [:state :guard-guess] face)
-     (condp = face
-       :guard (set-phase d :guard)
-       (set-phase d :resolution)))))
+   (-> db
+       (assoc-in [:state :guard-guess] face)
+       (set-phase :resolution))))
 
 ;; For cycling turns
 (defn next-in-list [current item-list]
@@ -87,47 +92,53 @@
        (filter :alive?)
        (mapv :id)))
 
+(defn handle-next-player [db]
+  (let [current-player (:current-player (:game db))
+        players        (player-list (:game db))
+        next-player    (next-in-list current-player players)]
+    (-> db
+        (assoc-in [:game :current-player] next-player)
+        (assoc-in [:game :players next-player :protected?] false)
+        (set-phase :draw))))
+
 (register-handler
  :next-player
  re-frame.core/debug
  (fn [db _]
-   (let [current-player (:current-player (:game db))
-         players        (player-list (:game db))
-         next-player    (next-in-list current-player players)]
-     (-> db
-         (assoc-in [:game :current-player] next-player)
-         (assoc-in [:game :players next-player :protected?] false)))))
+   (handle-next-player db)))
 
-(def card-abilities
-  {:guard    l/guard-ability
-   :baron    l/baron-ability
-   :handmaid l/handmaid-ability
-   :prince   l/prince-ability
-   :king     l/king-ability})
-
-(defn remove-first [face coll]
-  (let [[pre post] (split-with #(not= face (:face %)) coll)]
-    (vec (concat pre (rest post)))))
+(register-handler
+ :draw-card
+ (fn [db [_ player-id]]
+   (as-> db d
+     (assoc-in d [:game] (l/draw-card (:game db) player-id))
+     (if (l/countess-check d player-id)
+       (-> d
+           (handle-countess player-id)
+           (handle-next-player))
+       d))))
 
 (defn play-card [db face current-player]
   (let [path [:game :players current-player :hand]]
     (assoc-in db path (remove-first face (get-in db path)))))
 
+(defn update-game [db game]
+  (assoc db :game game))
+
 (defn resolve-effect [db]
   (let [{:keys [card-target active-card guard-guess]} (:state db)
         game (:game db)
-        current-player (:current-player game)
-        card-effect    (active-card card-abilities)]
+        current-player (:current-player game)]
     (condp = active-card
-      :prince (assoc db :game (card-effect game card-target))
-      :guard  (assoc db :game (card-effect game guard-guess card-target))
-      :baron  (assoc db :game (card-effect game current-player card-target))
-      :king   (assoc db :game (card-effect game current-player card-target))
-      :handmaid (assoc db :game (card-effect game current-player))
+      :prince   (update-game db (l/prince-ability game card-target))
+      :guard    (update-game db (l/guard-ability  game guard-guess card-target))
+      :baron    (update-game db (l/baron-ability  game current-player card-target))
+      :king     (update-game db (l/king-ability   game current-player card-target))
+      :handmaid (update-game db (l/handmaid-ability game current-player))
       :countess db
       :priest   db
-      :princess (assoc db :game (l/kill-player game current-player))
-      (assoc db :game (card-effect game current-player card-target)))))
+      :princess (update-game db (l/kill-player game current-player))
+      db)))
 
 (register-handler
  :resolve-effect
@@ -137,5 +148,6 @@
          current-player (get-in db [:game  :current-player])]
      (-> db
          (play-card active-card current-player)
-         (resolve-effect)))))
+         (resolve-effect)
+         (handle-next-player)))))
 

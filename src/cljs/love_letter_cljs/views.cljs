@@ -13,8 +13,8 @@
 
 (defn card-list [deck]
   [:ul
-   (for [card deck]
-     ^{:key (rand-int 1000)} [card-item card])])
+   (map-indexed (fn [i card]
+     ^{:key i} [card-item card]) deck)])
 
 (defn play-button [face]
   [:button {:type "button"
@@ -72,8 +72,7 @@
    :princess])
 
 (defn guard-guess-button [face]
-  [:button {:on-click #(do (dispatch [:set-guard-guess face])
-                           (dispatch [:set-phase :target]))} (name face)])
+  [:button {:on-click #(dispatch [:set-guard-guess face])} (name face)])
 (defn guard-control []
   [:div
    (map-indexed (fn [i face]
@@ -90,10 +89,7 @@
          :play [card-list-with-button (:hand @player-info) @phase]
          :target [target-control]
          :guard  [guard-control]
-         :resolution [:div
-                      [:button {:on-click #(do (dispatch [:resolve-effect])
-                                               (dispatch [:next-player])
-                                               (dispatch [:reset-state]))} "Resolve"]]
+         :resolution [:button {:on-click #(dispatch [:resolve-effect])} "Resolve"]
          [:div "error"])])))
 
 (defn log-panel []
