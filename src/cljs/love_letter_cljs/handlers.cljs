@@ -4,7 +4,7 @@
               [love-letter-cljs.game :as l]))
 
 (defn remove-first [face coll]
-  (let [[pre post] (split-with #(not= face (:face %)) coll)]
+ (let [[pre post] (split-with #(not= face (:face %)) coll)]
     (vec (concat pre (rest post)))))
 
 (register-handler
@@ -97,14 +97,15 @@
   (let [current-player (:current-player (:game db))
         players        (player-list (:game db))
         next-player    (next-in-list current-player players)]
-    (-> db
-        (assoc-in [:game :current-player] next-player)
-        (assoc-in [:game :players next-player :protected?] false)
-        (set-phase :draw))))
+    (if (l/game-complete? (:game db))
+      (set-phase db :complete)
+      (-> db
+          (assoc-in [:game :current-player] next-player)
+          (assoc-in [:game :players next-player :protected?] false)
+          (set-phase :draw)))))
 
 (register-handler
  :next-player
- re-frame.core/debug
  (fn [db _]
    (handle-next-player db)))
 
@@ -143,7 +144,6 @@
 
 (register-handler
  :resolve-effect
- re-frame.core/debug
  (fn [db _]
    (let [active-card    (get-in db [:state :active-card])
          current-player (get-in db [:game  :current-player])]

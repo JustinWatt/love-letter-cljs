@@ -48,7 +48,7 @@
     (fn []
       (when @card
         (let [img-src (str "images/cardart/" (name @card) ".png")]
-          [:img {:src  img-src}])))))
+          [:img.img-responsive {:src  img-src}])))))
 
 (defn target-control []
   (let [targets (subscribe [:valid-targets])]
@@ -88,6 +88,7 @@
          :target [target-control]
          :guard  [guard-control]
          :resolution [:button {:on-click #(dispatch [:resolve-effect])} "Resolve"]
+         :complete [:div "Woo"]
          [:div "error"])])))
 
 (defn log-panel []
@@ -103,6 +104,7 @@
   (let [deck           (subscribe [:deck])
         players        (subscribe [:players])
         burn-pile      (subscribe [:burn-pile])
+        discard-pile      (subscribe [:discard-pile])
         current-player (subscribe [:current-player])
         app-state      (subscribe [:app-state])
         db             (subscribe [:db])]
@@ -124,14 +126,20 @@
          [:h3 "Burn Pile ("(str (count @burn-pile))")"]
          [card-list @burn-pile]
          [command-panel]
-         [:div (str @app-state)]
-         [:div {:style {:height "336px" :width "235px"}}
-          [card-display]]]]
+         [:div (str @app-state)]]]
 
        [:div.row
-        [:div.col-md-6.col-sm-6.col-xs-6
+        [:div.col-md-4.col-sm-4.col-xs-4
          [:h1 (str "Current Player: " @current-player)]
          [game-controls]]
+
+        [:div.col-md-4.col-sm-4.col-xs-4
+         [:h3 "Discard Pile ("(str (count @discard-pile))")"]
+         [card-list @discard-pile]]
+
+        [:div.col-md-4.col-sm-4.col-xs-4
+          [card-display]]
+
 
         [:div.col-md-6.col-sm-6.col-xs-6
          #_[log-panel]]]])))

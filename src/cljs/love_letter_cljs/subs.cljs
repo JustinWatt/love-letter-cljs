@@ -14,6 +14,11 @@
    (reaction (get-in @db [:game :burn-pile]))))
 
 (register-sub
+ :discard-pile
+ (fn [db]
+   (reaction (get-in @db [:game :discard-pile]))))
+
+(register-sub
  :current-player
  (fn [db]
    (reaction (get-in @db [:game :current-player]))))
