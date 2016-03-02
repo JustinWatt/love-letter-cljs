@@ -39,8 +39,7 @@
 (register-sub
  :display-card
  (fn [db]
-   (reaction (-> (get-in @db [:state :display-card])
-                 card-info))))
+   (reaction (get-in @db [:state :display-card]))))
 (register-sub
  :db
  (fn [db]

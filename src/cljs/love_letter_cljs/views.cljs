@@ -37,8 +37,7 @@
   (let [{:keys [id hand alive? protected?]} player]
     [:div.col-md-6
      [:h5 (str "Player " id (when-not alive? " Out") (when protected? " Protected") ":")]
-     [card-list hand]
-     (when alive? [draw-button id])]))
+     [card-list hand]]))
 
 (defn command-panel []
   [:div
@@ -47,10 +46,9 @@
 (defn card-display []
   (let [card (subscribe [:display-card])]
     (fn []
-      (let [{:keys [face value text]} @card]
-        [:div
-         [:h2 face [:span {:style {:font-size "1.5em"}} (str " " value)]]
-         [:p  text]]))))
+      (when @card
+        (let [img-src (str "images/cardart/" (name @card) ".png")]
+          [:img {:src  img-src}])))))
 
 (defn target-control []
   (let [targets (subscribe [:valid-targets])]
@@ -127,7 +125,8 @@
          [card-list @burn-pile]
          [command-panel]
          [:div (str @app-state)]
-         [card-display]]]
+         [:div {:style {:height "336px" :width "235px"}}
+          [card-display]]]]
 
        [:div.row
         [:div.col-md-6.col-sm-6.col-xs-6
@@ -135,4 +134,4 @@
          [game-controls]]
 
         [:div.col-md-6.col-sm-6.col-xs-6
-         [log-panel]]]])))
+         #_[log-panel]]]])))
