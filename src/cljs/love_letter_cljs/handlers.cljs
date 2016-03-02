@@ -60,6 +60,7 @@
      (condp = face
        :princess (set-phase d :resolution)
        :handmaid (set-phase d :resolution)
+       :countess (set-phase d :resolution)
        (set-phase d :target)))))
 
 (register-handler
