@@ -84,7 +84,8 @@
 (defn next-in-list [current item-list]
   (as-> item-list i
     (drop-while #(not= current %) i)
-    (or (first (next i)) (first item-list))))
+    (or (first (next i))
+        (first item-list))))
 
 (defn player-list [game]
   (->> game
@@ -120,9 +121,19 @@
            (handle-next-player))
        d))))
 
-(defn play-card [db face current-player]
+(defn retrieve-card [db face current-player]
   (let [path [:game :players current-player :hand]]
-    (assoc-in db path (remove-first face (get-in db path)))))
+    (->> (get-in db path)
+         (filter #(= face (:face %)))
+         first)))
+
+(defn play-card [db face current-player]
+  (let [path [:game :players current-player :hand]
+        discarded-card (retrieve-card db face current-player)
+        discard-pile (get-in db [:game :discard-pile])]
+    (-> db
+        (assoc-in path (remove-first face (get-in db path)))
+        (assoc-in [:game :discard-pile] (conj discard-pile discarded-card)))))
 
 (defn update-game [db game]
   (assoc db :game game))
