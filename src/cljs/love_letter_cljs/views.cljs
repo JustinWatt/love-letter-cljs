@@ -54,11 +54,13 @@
   (let [targets (subscribe [:valid-targets])]
     (fn []
       [:div
-       [:ul
-        (for [t @targets]
-          ^{:key (str "target-" t)}
-          [:button {:id (str "target-" t)
-                    :on-click #(dispatch [:set-target t])} (str "Player " t)])]])))
+       (if (empty? @targets)
+         [:button {:on-click #(dispatch [:discard-without-effect])} "No Valid Targets"]
+         [:ul
+          (for [t @targets]
+            ^{:key (str "target-" t)}
+            [:button {:id (str "target-" t)
+                      :on-click #(dispatch [:set-target t])} (str "Player " t)])])])))
 
 (def card-faces
   [:priest

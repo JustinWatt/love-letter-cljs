@@ -42,3 +42,26 @@
                          :guard-guess nil
                          :card-target nil
                          :log [{:from "System" :date (.toLocaleTimeString (js/Date.)) :message "Welcome to the Game"}]}})
+
+
+
+(def action-types
+  {:guard    [:high-card :eliminate :survive]
+   :priest   [:high-card :assist]
+   :baron    [:high-card :eliminate :survive]
+   :handmaid [:high-card :defense]
+   :prince   [:high-card :eliminate]
+   :king     [:high-card :assist]
+   :countess [:high-card :assist]
+   :princess [:high-card :suicide]})
+
+
+(def action
+  {:card          :guard
+   :value         1
+   :action-type   :eliminate
+   :target-player 2
+   :target-card   :baron
+   :action-score  30})
+
+

@@ -163,3 +163,12 @@
          (resolve-effect)
          (handle-next-player)))))
 
+(register-handler
+ :discard-without-effect
+ (fn [db]
+   (let [active-card    (get-in db [:state :active-card])
+         current-player (get-in db [:game  :current-player])
+         valid-targets  (l/valid-targets (:game db))]
+     (-> db
+         (play-card active-card current-player)
+         (handle-next-player)))))

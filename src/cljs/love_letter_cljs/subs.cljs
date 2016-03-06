@@ -45,6 +45,7 @@
  :display-card
  (fn [db]
    (reaction (get-in @db [:state :display-card]))))
+
 (register-sub
  :db
  (fn [db]
@@ -69,7 +70,7 @@
 (register-sub
  :app-state
  (fn [db]
-   (reaction (:state @db))))
+   (reaction @db)))
 
 (register-sub
  :log
