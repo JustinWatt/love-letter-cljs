@@ -32,6 +32,7 @@
            :active-card  (s/maybe card-face)
            :guard-guess  (s/maybe card-face)
            :card-target  (s/maybe player-id)
+           :debug-mode?   s/Bool
            :log          [(s/maybe {:time s/Str :message s/Str})]}})
 
 (def default-db {:game  (create-and-deal)
@@ -41,6 +42,7 @@
                          :active-card nil
                          :guard-guess nil
                          :card-target nil
+                         :debug-mode? false
                          :log [{:from "System" :date (.toLocaleTimeString (js/Date.)) :message "Welcome to the Game"}]}})
 
 

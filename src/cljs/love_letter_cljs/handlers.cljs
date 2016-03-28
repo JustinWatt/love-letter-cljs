@@ -81,7 +81,7 @@
        (set-phase :resolution))))
 
 ;; For cycling turns
-(defn next-in-list [current item-list]
+(defn next-in-list [item-list current]
   (as-> item-list i
     (drop-while #(not= current %) i)
     (or (first (next i))
@@ -94,10 +94,10 @@
        (filter :alive?)
        (mapv :id)))
 
-(defn handle-next-player [db]
+(defn start-next-turn [db]
   (let [current-player (:current-player (:game db))
         players        (player-list (:game db))
-        next-player    (next-in-list current-player players)]
+        next-player    (next-in-list players current-player)]
     (if (l/game-complete? (:game db))
       (set-phase db :complete)
       (-> db
@@ -108,7 +108,7 @@
 (register-handler
  :next-player
  (fn [db _]
-   (handle-next-player db)))
+   (start-next-turn db)))
 
 (register-handler
  :draw-card
@@ -118,7 +118,7 @@
      (if (l/countess-check d player-id)
        (-> d
            (handle-countess player-id)
-           (handle-next-player))
+           (start-next-turn))
        d))))
 
 (defn retrieve-card [db face current-player]
@@ -157,18 +157,22 @@
  :resolve-effect
  (fn [db _]
    (let [active-card    (get-in db [:state :active-card])
-         current-player (get-in db [:game  :current-player])]
+         current-player (get-in db[:game  :current-player])]
      (-> db
          (play-card active-card current-player)
          (resolve-effect)
-         (handle-next-player)))))
+         (start-next-turn)))))
 
 (register-handler
  :discard-without-effect
  (fn [db]
    (let [active-card    (get-in db [:state :active-card])
-         current-player (get-in db [:game  :current-player])
-         valid-targets  (l/valid-targets (:game db))]
+         current-player (get-in db [:game  :current-player])]
      (-> db
          (play-card active-card current-player)
-         (handle-next-player)))))
+         (start-next-turn)))))
+
+(register-handler
+ :toggle-debug-mode
+ (fn [db]
+   (update-in db [:state :debug-mode?] not)))

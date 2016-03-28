@@ -73,6 +73,11 @@
    (reaction @db)))
 
 (register-sub
+ :debug-mode
+ (fn [db]
+   (reaction (get-in @db [:state :debug-mode?]))))
+
+(register-sub
  :log
  (fn [db]
    (let [state (subscribe [:app-state])]
