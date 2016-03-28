@@ -1,16 +1,16 @@
-(defproject love-letter-cljs "0.1.0-SNAPSHOT"
-  :dependencies [[org.clojure/clojure "1.7.0"]
-                 [org.clojure/clojurescript "1.7.170"]
-                 [reagent "0.5.1"]
-                 [re-frame "0.6.0"]
-                 [prismatic/schema "1.0.4"]]
+(defproject love-letter-cljs "0.1.1-SNAPSHOT"
+  :dependencies [[org.clojure/clojure "1.8.0"]
+                 [org.clojure/clojurescript "1.8.40"]
+                 [reagent "0.6.0-alpha"]
+                 [re-frame "0.7.0"]
+                 [prismatic/schema "1.1.0"]]
 
   :min-lein-version "2.5.3"
 
   :source-paths ["src/clj"]
 
-  :plugins [[lein-cljsbuild "1.1.1"]
-            [lein-figwheel "0.5.0-6"]
+  :plugins [[lein-cljsbuild "1.1.3"]
+            [lein-figwheel "0.5.2"]
             [lein-doo "0.1.6"]]
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"
@@ -21,7 +21,7 @@
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]
                                   [figwheel-sidecar "0.5.0-1"]]
                    :source-paths ["cljs_src" "dev"]}
-             :repl {:plugins [[cider/cider-nrepl "0.10.1"]]}}
+             :repl {:plugins [[cider/cider-nrepl "0.11.0"]]}}
 
   :figwheel-options {:port 7888}
 
