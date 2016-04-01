@@ -96,8 +96,8 @@
   (let [player-card (reveal-card game player)
         target-card (reveal-card game target)]
     (-> game
-        (assoc-in [:players player :hand] target-card)
-        (assoc-in [:players target :hand] player-card))))
+        (assoc-in [:players target :hand] [player-card])
+        (assoc-in [:players player :hand] [target-card]))))
 
 (defn prince-ability [game target]
   (let [target-card (reveal-card game target)]

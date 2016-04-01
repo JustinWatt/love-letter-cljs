@@ -45,8 +45,6 @@
                          :debug-mode? false
                          :log [{:from "System" :date (.toLocaleTimeString (js/Date.)) :message "Welcome to the Game"}]}})
 
-
-
 (def action-types
   {:guard    [:high-card :eliminate :survive]
    :priest   [:high-card :assist]
@@ -56,7 +54,6 @@
    :king     [:high-card :assist]
    :countess [:high-card :assist]
    :princess [:high-card :suicide]})
-
 
 (def action
   {:card          :guard

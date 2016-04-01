@@ -7,7 +7,7 @@
 
   :min-lein-version "2.5.3"
 
-  :source-paths ["src/clj"]
+  :source-paths ["src/clj" "src/cljs"]
 
   :plugins [[lein-cljsbuild "1.1.3"]
             [lein-figwheel "0.5.2"]
@@ -19,9 +19,9 @@
   :figwheel {:css-dirs ["resources/public/css"]}
 
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]
-                                  [figwheel-sidecar "0.5.0-1"]]
+                                  [figwheel-sidecar "0.5.0-2"]]
                    :source-paths ["cljs_src" "dev"]}
-             :repl {:plugins [[cider/cider-nrepl "0.11.0"]]}}
+             :repl {:plugins [[cider/cider-nrepl "0.12.0-SNAPSHOT"]]}}
 
   :figwheel-options {:port 7888}
 
