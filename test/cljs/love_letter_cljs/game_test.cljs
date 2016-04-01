@@ -23,17 +23,11 @@
            {:face :baron,    :value 3}
            {:face :king,     :value 6}),
    :discard-pile [],
-   :players {1 {:id 1, :hand [{:face :guard,  :value 1}], :alive? true},
+   :players {1 {:id 1, :hand [{:face :guard,  :value 1}], :alive? true, :protected? true},
              2 {:id 2, :hand [{:face :priest, :value 2}], :alive? false},
              3 {:id 3, :hand [{:face :guard,  :value 1}], :alive? true},
              4 {:id 4, :hand [{:face :prince, :value 5} {:face :countess, :value 7}], :alive? true}},
    :current-player 1})
-
-(let [p-c (sut/reveal-card test-game-a 2)
-      t-c (sut/reveal-card test-game-a 1)]
-  (-> test-game-a
-      (assoc-in [:players 1 :hand] [p-c])
-      (assoc-in [:players 2 :hand] [t-c])))
 
 (def test-game-b
   {:deck '({:face :guard,    :value 1}
@@ -140,7 +134,7 @@
              (discard-n 12)
              sut/game-complete?))))
 
-#_(deftest countess-check-test
+(deftest countess-check-test
   (is (= true
          (-> test-game-a
              (sut/countess-check 4)))))
@@ -149,3 +143,12 @@
   (is (= '(3 4)
          (-> test-game-a
              sut/valid-targets))))
+
+(deftest remove-protection-test
+  (is (= false
+         (-> test-game-a
+             sut/remove-protection
+             (get-in [:players 1 :protected?])))))
+
+(deftest count-alive-test
+  (is (= 3 (-> test-game-a sut/count-alive))))

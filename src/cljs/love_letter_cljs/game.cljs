@@ -145,9 +145,9 @@
     (->> hand
          (map :face)
          set
-         (some #{:prince :king})
+         (set/intersection #{:prince :king})
          count
-         (> 0))))
+         (not= 0))))
 
 (defn- valid-target? [current-player player]
   (and (not= current-player (:id player))
@@ -164,6 +164,5 @@
          (map :id)))))
 
 (defn remove-protection [game]
-  (let [current-player (:current-player game)]
-    (assoc-in game [:players current-player :protected?] false)))
+  (assoc-in game [:players (:current-player game) :protected?] false))
 
