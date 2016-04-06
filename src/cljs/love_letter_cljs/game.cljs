@@ -12,7 +12,7 @@
 
 (defn generate-card [card]
   (let [{:keys [count face value]} card]
-    (repeat count {:face face :value value})))
+    (repeat count {:face face :value value :visible []})))
 
 (defn generate-deck []
   (vec (shuffle (mapcat generate-card cards))))
@@ -24,8 +24,7 @@
    :protected? false})
 
 (defn create-players [n]
-  (for [p (range 1 (inc n))]
-    (create-player p)))
+  (mapv create-player (range 1 (inc n))))
 
 (defn add-players [n]
   (reduce
@@ -61,7 +60,7 @@
         (update-in [:discard-pile] into (vec (take 1 cards)))
         (assoc-in source (drop 1 cards)))))
 
-(defn reveal-card [game target]
+(defn find-card [game target]
   (-> game
       (get-in [:players target :hand])
       first))
@@ -77,37 +76,42 @@
       (update-in [:players target :alive?] not)
       (discard-card [:players target :hand])))
 
+(defn reveal-card-to-player [game player target]
+  (update-in game [:players target :hand 0 :visible] conj player))
+
+(defn handmaid-ability [game player]
+  (assoc-in game [:players player :protected?] true))
+
 (defn baron-ability [game player target]
-  (let [player-card (reveal-card game player)
-        target-card (reveal-card game target)]
+  (let [player-card (find-card game player)
+        target-card (find-card game target)]
     (condp #(%1 (:value player-card) %2) (:value target-card)
         > (kill-player game target)
         < (kill-player game player)
-        = game)))
+        = (-> game
+              (reveal-card-to-player player target)
+              (reveal-card-to-player target player)))))
 
 (defn guard-ability [game guess target]
-  (let [target-card (reveal-card game target)]
+  (let [target-card (find-card game target)]
     (if (and (not= :guard (target-card :face))
              (= guess (target-card :face)))
              (kill-player game target)
              game)))
 
 (defn king-ability [game player target]
-  (let [player-card (reveal-card game player)
-        target-card (reveal-card game target)]
+  (let [player-card (find-card game player)
+        target-card (find-card game target)]
     (-> game
         (assoc-in [:players target :hand] [player-card])
         (assoc-in [:players player :hand] [target-card]))))
 
 (defn prince-ability [game target]
-  (let [target-card (reveal-card game target)]
+  (let [target-card (find-card game target)]
     (if (= :princess target-card) (kill-player game target)
         (-> game
             (discard-card [:players target :hand])
             (draw-card target)))))
-
-(defn handmaid-ability [game player]
-  (assoc-in game [:players player :protected?] true))
 
 (defn score-hand [player]
   (let [hand (player :hand)]

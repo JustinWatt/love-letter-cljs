@@ -11,69 +11,49 @@
 
 ;; (create-and-deal)
 (def test-game-a
-  {:deck '({:face :guard,    :value 1}
-           {:face :baron,    :value 3}
-           {:face :priest,   :value 2}
-           {:face :guard,    :value 1}
-           {:face :handmaid, :value 4}
-           {:face :prince,   :value 5}
-           {:face :handmaid, :value 4}
-           {:face :guard,    :value 1}
-           {:face :princess, :value 8}
-           {:face :baron,    :value 3}
-           {:face :king,     :value 6}),
+  {:deck '({:face :guard,    :value 1 :visible []}
+           {:face :baron,    :value 3 :visible []}
+           {:face :priest,   :value 2 :visible []}
+           {:face :guard,    :value 1 :visible []}
+           {:face :handmaid, :value 4 :visible []}
+           {:face :prince,   :value 5 :visible []}
+           {:face :handmaid, :value 4 :visible []}
+           {:face :guard,    :value 1 :visible []}
+           {:face :princess, :value 8 :visible []}
+           {:face :baron,    :value 3 :visible []}
+           {:face :king,     :value 6 :visible []}),
    :discard-pile [],
-   :players {1 {:id 1, :hand [{:face :guard,  :value 1}], :alive? true, :protected? true},
-             2 {:id 2, :hand [{:face :priest, :value 2}], :alive? false},
-             3 {:id 3, :hand [{:face :guard,  :value 1}], :alive? true},
-             4 {:id 4, :hand [{:face :prince, :value 5} {:face :countess, :value 7}], :alive? true}},
+   :players {1 {:id 1, :hand [{:face :guard,  :value 1 :visible []}], :alive? true, :protected? true},
+             2 {:id 2, :hand [{:face :priest, :value 2 :visible []}], :alive? false},
+             3 {:id 3, :hand [{:face :guard,  :value 1 :visible []}], :alive? true},
+             4 {:id 4, :hand [{:face :prince, :value 5 :visible []} {:face :countess, :value 7}], :alive? true}},
    :current-player 1})
 
 (def test-game-b
-  {:deck '({:face :guard,    :value 1}
-           {:face :baron,    :value 3}
-           {:face :priest,   :value 2}
-           {:face :guard,    :value 1}
-           {:face :handmaid, :value 4}
-           {:face :prince,   :value 5}
-           {:face :handmaid, :value 4}
-           {:face :guard,    :value 1}
-           {:face :princess, :value 8}
-           {:face :baron,    :value 3}
-           {:face :prince,   :value 5}
-           {:face :king,     :value 6}),
+  {:deck '({:face :guard,    :value 1 :visible []}
+           {:face :baron,    :value 3 :visible []}
+           {:face :priest,   :value 2 :visible []}
+           {:face :guard,    :value 1 :visible []}
+           {:face :handmaid, :value 4 :visible []}
+           {:face :prince,   :value 5 :visible []}
+           {:face :handmaid, :value 4 :visible []}
+           {:face :guard,    :value 1 :visible []}
+           {:face :princess, :value 8 :visible []}
+           {:face :baron,    :value 3 :visible []}
+           {:face :prince,   :value 5 :visible []}
+           {:face :king,     :value 6 :visible []}),
    :discard-pile [],
-   :players {1 {:id 1, :hand [{:face :guard,  :value 1}], :alive? true},
-             2 {:id 2, :hand [{:face :priest, :value 2}], :alive? true},
-             3 {:id 3, :hand [{:face :guard,  :value 1}], :alive? true},
-             4 {:id 4, :hand [{:face :countess, :value 7}], :alive? true}},
-   :current-player 1})
-
-(def test-game-b
-  {:deck '({:face :guard,    :value 1}
-           {:face :baron,    :value 3}
-           {:face :priest,   :value 2}
-           {:face :guard,    :value 1}
-           {:face :handmaid, :value 4}
-           {:face :prince,   :value 5}
-           {:face :handmaid, :value 4}
-           {:face :guard,    :value 1}
-           {:face :princess, :value 8}
-           {:face :baron,    :value 3}
-           {:face :prince,   :value 5}
-           {:face :king,     :value 6}),
-   :discard-pile [],
-   :players {1 {:id 1, :hand [{:face :guard,  :value 1}], :alive? true},
-             2 {:id 2, :hand [{:face :priest, :value 2}], :alive? true},
-             3 {:id 3, :hand [{:face :guard,  :value 1}], :alive? true},
-             4 {:id 4, :hand [{:face :countess, :value 7}], :alive? true}},
+   :players {1 {:id 1, :hand [{:face :guard,  :value 1 :visible []}], :alive? true},
+             2 {:id 2, :hand [{:face :priest, :value 2 :visible []}], :alive? true},
+             3 {:id 3, :hand [{:face :guard,  :value 1 :visible []}], :alive? true},
+             4 {:id 4, :hand [{:face :countess, :value 7 :visible []}], :alive? true}},
    :current-player 1})
 ;; tests
 
-(deftest reveal-card-test
-  (is (= {:face :guard :value 1}
+(deftest find-card-test
+  (is (= {:face :guard :value 1 :visible []}
          (-> test-game-a
-             (sut/reveal-card 1)))))
+             (sut/find-card 1)))))
 
 (deftest correct-card-count
   (is (= {:guard 5 :priest 2 :baron 2 :handmaid 2
@@ -99,24 +79,24 @@
 
 (deftest king-ability-test
   (testing "Target gains players card"
-    (is (= [{:face :guard :value 1}]
+    (is (= [{:face :guard :value 1 :visible []}]
            (-> test-game-a
                (sut/king-ability 1 2)
                (get-in [:players 2 :hand])))))
   (testing "Player gains targets card"
-    (is (= [{:face :priest :value 2}]
+    (is (= [{:face :priest :value 2 :visible []}]
            (-> test-game-a
                (sut/king-ability 1 2)
                (get-in [:players 1 :hand]))))))
 
 (deftest discard-card-test
-  (is (= [{:face :guard :value 1}]
+  (is (= [{:face :guard :value 1 :visible []}]
          (-> test-game-a
              (sut/discard-card [:players 1 :hand])
              :discard-pile))))
 
 (deftest prince-ability-test
-  (is (= [{:face :guard :value 1}]
+  (is (= [{:face :guard :value 1 :visible []}]
          (-> test-game-a
              (sut/discard-card [:players 2 :hand])
              (sut/draw-card 2)
@@ -152,3 +132,12 @@
 
 (deftest count-alive-test
   (is (= 3 (-> test-game-a sut/count-alive))))
+
+(deftest reveal-card-to-player-test
+  (is (= [1]
+         (-> test-game-a
+             (sut/reveal-card-to-player 1 2)
+             (get-in [:players 2 :hand])
+             (->> first
+                  :visible)))))
+

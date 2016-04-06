@@ -7,8 +7,11 @@
   (s/enum :guard  :priest :baron    :handmaid
           :prince :king   :countess :princess))
 
+(def player-id s/Int)
+
 (def card {:face card-face
-           :value s/Int})
+           :value s/Int
+           :visible [player-id]})
 
 (def card-pile [(s/maybe card)])
 
@@ -16,8 +19,6 @@
              :hand   card-pile
              :alive? s/Bool
              :protected? s/Bool})
-
-(def player-id s/Int)
 
 (def app-schema
   {:game {:deck         card-pile
