@@ -10,6 +10,13 @@
             {:face :countess :value 7 :count 1}
             {:face :princess :value 8 :count 1}])
 
+(def action-types [:suicide
+                   :eliminate
+                   :assist
+                   :survive
+                   :high-card
+                   :defensive :bluff])
+
 (defn generate-card [card]
   (let [{:keys [count face value]} card]
     (repeat count {:face face :value value})))
@@ -18,8 +25,6 @@
   (vec (shuffle (mapcat generate-card cards))))
 
 ;;; AI STUFF
-
-;;;
 
 (defn remove-first [face coll]
   (let [[pre post] (split-with #(not= face (:face %)) coll)]
@@ -84,10 +89,10 @@
         current-player-hand (player-hand game current-player)
         known-list (vec (map :face (concat discard-pile current-player-hand)))
         filtered-deck (filter-fresh-deck known-list)]
-
     (float (/ (count (filter #(>= value (:value %)) filtered-deck))
               (count filtered-deck)))))
 
+(map apply [inc dec (comp inc inc)] [1 2 3])
 
 ;; Game -> Id -> Card -> Float
 (defn guard-probability [game target-player guess]
@@ -103,17 +108,18 @@
                 (count filtered-deck))))))
 
 (guard-probability test-game 2 {:face :guard :value 3})
+(guard-probability test-game 2 {:face :baron :value 3})
 (guard-probability test-game 3 {:face :baron :value 3})
 
 (defn baron-probability [game player-card target-player]
   (let [{:keys [discard-pile current-player]} game
-        player-value (:value player-card)
+        player-value        (:value player-card)
         current-player-hand (player-hand game current-player)
-        known-list (mapv :face (concat discard-pile current-player-hand))
-        visible-card (known-card game current-player target-player)
-        filtered-deck (filter-fresh-deck known-list)]
+        known-list          (mapv :face (concat discard-pile current-player-hand))
+        visible-card        (known-card game current-player target-player)
+        filtered-deck       (filter-fresh-deck known-list)]
     (if visible-card
-      (if (> player-value (:value card-known)) 100 0)
+      (if (> player-value (:value visible-card)) 100 0)
       (float (/ (count (filter #(> player-value (:value %)) filtered-deck))
                 (count filtered-deck))))))
 
@@ -121,13 +127,13 @@
 
 (defn baron-survival-probability [game player-card target-player]
   (let [{:keys [discard-pile current-player]} game
-        player-value (:value player-card)
+        player-value        (:value player-card)
         current-player-hand (player-hand game current-player)
-        known-list (mapv :face (concat discard-pile current-player-hand))
-        visible-card (known-card game current-player target-player)
-        filtered-deck (filter-fresh-deck known-list)]
+        known-list          (mapv :face (concat discard-pile current-player-hand))
+        visible-card        (known-card game current-player target-player)
+        filtered-deck       (filter-fresh-deck known-list)]
     (if visible-card
-      (if (>= player-value (:value card-known)) 100 0)
+      (if (>= player-value (:value visible-card)) 100 0)
       (float (/ (count (filter #(>= player-value (:value %)) filtered-deck))
                 (count filtered-deck))))))
 
@@ -136,14 +142,67 @@
 (defn prince-probability [game target-player]
   (let [{:keys [discard-pile current-player]} game
         current-player-hand (player-hand game current-player)
-        visible-card (known-card game current-player target-player)
-        known-list (mapv :face (concat discard-pile current-player-hand))
-        filtered-deck (filter-fresh-deck known-list)]
+        visible-card        (known-card game current-player target-player)
+        known-list          (mapv :face (concat discard-pile current-player-hand))
+        filtered-deck       (filter-fresh-deck known-list)]
     (if visible-card
-      (if (= :princess (:face card-known)) 100 0)
+      (if (= :princess (:face visible-card)) 100 0)
       (float (/ (count (filter #(= :princess (:face %)) filtered-deck))
                 (count filtered-deck))))))
 
+(defn princess-suicide-probability [] -1)
+
+(defn get-other-card [card hand]
+  (first (remove-first card hand)))
+
+(defn king-assist-probability [game target-player]
+  (let [{:keys [current-player]} game
+        current-player-hand (player-hand game current-player)
+        visible-card        (known-card game current-player target-player)
+        players-other-card  (get-other-card :king current-player-hand)]
+    (if visible-card
+      (case (:face visible-card)
+        :guard     80
+        :priest     0
+        :baron     40
+        :handmaid 100
+        :prince    30
+        :countess  10
+        :princess   0
+        :default    0)
+      (case (:face players-other-card)
+        :guard      0
+        :priest    90
+        :baron     10
+        :handmaid   0
+        :prince    25
+        :princess 100
+        :default    0))))
+
+(defn contains-attack-card? [hand]
+  (let [faces (set (map :face hand))]
+    (some faces [:baron :guard :prince])))
+
+(defn priest-probability [game target-player]
+  (let [{:keys [current-player]} game
+        current-player-hand (player-hand game current-player)
+        visible-card        (known-card game current-player target-player)]
+    (if visible-card
+      0
+      (if (contains-attack-card? current-player-hand) 100 50))))
+
+(priest-probability test-game 4)
 (prince-probability test-game 3)
 
 (high-card test-game {:face :king :value 6})
+
+(defn holding-princess? [hand]
+  (= :princess (:face (get-other-card :countess hand))))
+
+(defn countess-bluff [game]
+  (let [{:keys [current-player]} game
+        current-player-hand (player-hand game current-player)]
+    (if (holding-princess? current-player-hand) 0 100)))
+
+(defn handmaid-defensive-probability [] 100)
+
