@@ -6,28 +6,28 @@
 (register-sub
  :deck
  (fn [db]
-   (reaction (get-in @db [:game :deck]))))
+   (reaction (get-in @db [:deck]))))
 
 (register-sub
  :burn-pile
  (fn [db]
-   (reaction (get-in @db [:game :burn-pile]))))
+   (reaction (get-in @db [:burn-pile]))))
 
 (register-sub
  :discard-pile
  (fn [db]
-   (reaction (get-in @db [:game :discard-pile]))))
+   (reaction (get-in @db [:discard-pile]))))
 
 (register-sub
  :current-player
  (fn [db]
-   (reaction (get-in @db [:game :current-player]))))
+   (reaction (get-in @db [:current-player]))))
 
 (register-sub
  :players
  (fn [db]
    (reaction
-    (->> (get-in @db [:game :players])
+    (->> (get-in @db [:players])
          vals
          vec))))
 
@@ -44,7 +44,7 @@
 (register-sub
  :display-card
  (fn [db]
-   (reaction (get-in @db [:state :display-card]))))
+   (reaction (get-in @db [:display-card]))))
 
 (register-sub
  :db
@@ -55,30 +55,24 @@
  :current-player-info
  (fn [db]
    (let [current-player (subscribe [:current-player])]
-     (reaction (get-in @db [:game :players @current-player])))))
+     (reaction (get-in @db [:players @current-player])))))
 
 (register-sub
  :current-phase
  (fn [db]
-   (reaction (get-in @db [:state :phase]))))
+   (reaction (get-in @db [:phase]))))
 
 (register-sub
  :valid-targets
  (fn [db]
-   (reaction (valid-targets (:game @db)))))
-
-(register-sub
- :app-state
- (fn [db]
-   (reaction @db)))
+   (reaction (valid-targets @db))))
 
 (register-sub
  :debug-mode
  (fn [db]
-   (reaction (get-in @db [:state :debug-mode?]))))
+   (reaction (get-in @db [::debug-mode?]))))
 
 (register-sub
  :log
  (fn [db]
-   (let [state (subscribe [:app-state])]
-     (reaction (:log @state)))))
+   (reaction (:log @db))))

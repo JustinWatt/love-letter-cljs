@@ -46,7 +46,7 @@
   (let [deck (:deck game)]
     (-> game
         (update-in [:players player-id :hand] into (take 1 deck))
-        (assoc-in  [:deck] (drop 1 deck)))))
+        (assoc :deck (drop 1 deck)))))
 
 (defn deal-cards [game]
   (let [player-ids (keys (:players game))]
@@ -90,18 +90,18 @@
   (let [player-card (find-card game player)
         target-card (find-card game target)]
     (condp #(%1 (:value player-card) %2) (:value target-card)
-        > (kill-player game target)
-        < (kill-player game player)
-        = (-> game
-              (reveal-card-to-player player target)
-              (reveal-card-to-player target player)))))
+      > (kill-player game target)
+      < (kill-player game player)
+      = (-> game
+            (reveal-card-to-player player target)
+            (reveal-card-to-player target player)))))
 
 (defn guard-ability [game guess target]
   (let [target-card (find-card game target)]
     (if (and (not= :guard (target-card :face))
              (= guess (target-card :face)))
-             (kill-player game target)
-             game)))
+      (kill-player game target)
+      game)))
 
 (defn king-ability [game player target]
   (let [player-card (find-card game player)
@@ -126,7 +126,7 @@
 
 (defn score-game [game]
   (-> game
-      (get-in [:players])
+      :players
       vals
       (->>
        (filter :alive?)
@@ -139,7 +139,7 @@
 
 (defn count-alive [game]
   (-> game
-      (get-in [:players])
+      :players
       vals
       (->>
        (filter :alive?)
