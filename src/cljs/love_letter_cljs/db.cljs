@@ -21,30 +21,33 @@
              :protected? s/Bool})
 
 (def app-schema
-  {:game {:deck         card-pile
-          :discard-pile card-pile
-          :burn-pile    card-pile
-          :players      {s/Int player}
-          :current-player player-id
-          :selected-card (s/maybe card-face)}
+  {:deck         card-pile
+   :discard-pile card-pile
+   :burn-pile    card-pile
+   :players      {s/Int player}
+   :current-player player-id
+   :selected-card (s/maybe card-face)
 
-   :state {:display-card (s/maybe card-face)
-           :phase        (s/enum :draw :play :guard :target :resolution)
-           :active-card  (s/maybe card-face)
-           :guard-guess  (s/maybe card-face)
-           :card-target  (s/maybe player-id)
-           :debug-mode?   s/Bool
-           :log          [(s/maybe {:time s/Str :message s/Str})]}})
+   :display-card (s/maybe card-face)
+   :phase        (s/enum :draw :play :guard :target :resolution)
+   :active-card  (s/maybe card-face)
+   :guard-guess  (s/maybe card-face)
+   :card-target  (s/maybe player-id)
+   :debug-mode?   s/Bool
+   :log          [(s/maybe {:time s/Str :message s/Str})]})
 
-(def default-db {:game  (create-and-deal)
-
-                 :state {:display-card nil
-                         :phase :draw
-                         :active-card nil
-                         :guard-guess nil
-                         :card-target nil
-                         :debug-mode? false
-                         :log [{:from "System" :date (.toLocaleTimeString (js/Date.)) :message "Welcome to the Game"}]}})
+(def default-db
+  (merge
+   (create-and-deal)
+   {:display-card nil
+    :phase :draw
+    :active-card nil
+    :guard-guess nil
+    :card-target nil
+    :debug-mode? false
+    :log [{:from "System"
+           :date (.toLocaleTimeString (js/Date.))
+           :message "Welcome to the Game"}]}))
 
 (def action-types
   {:guard    [:high-card :eliminate :survive]

@@ -116,7 +116,6 @@
         burn-pile      (subscribe [:burn-pile])
         discard-pile   (subscribe [:discard-pile])
         current-player (subscribe [:current-player])
-        app-state      (subscribe [:app-state])
         db             (subscribe [:db])
         debug?         (subscribe [:debug-mode])]
     (fn []
@@ -142,7 +141,7 @@
             [:h3 "Burn Pile ("(str (count @burn-pile))")"]
             [card-list @burn-pile]
             [command-panel]
-            #_[:div (str @app-state)]]]
+            [:h6 (str @db)]]]
 
           [:div.row
            [:div.col-md-4.col-sm-4.col-xs-4
@@ -164,6 +163,5 @@
 
 
            [:div.col-md-6.col-sm-6.col-xs-6
-            [:div @app-state]
             #_[log-panel]]]])])))
 
