@@ -125,9 +125,6 @@
            (start-next-turn))
        d))))
 
-(defn update-game [db game]
-  (merge db game))
-
 (defn resolve-effect [db]
   (let [{:keys [card-target active-card guard-guess]} db
         game db
