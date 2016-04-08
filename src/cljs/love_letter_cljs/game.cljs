@@ -10,6 +10,10 @@
             {:face :countess :value 7 :count 1}
             {:face :princess :value 8 :count 1}])
 
+(defn remove-first [face coll]
+  (let [[pre post] (split-with #(not= face (:face %)) coll)]
+    (vec (concat pre (rest post)))))
+
 (defn generate-card [card]
   (let [{:keys [count face value]} card]
     (repeat count {:face face :value value :visible []})))
@@ -108,10 +112,11 @@
 
 (defn prince-ability [game target]
   (let [target-card (find-card game target)]
-    (if (= :princess target-card) (kill-player game target)
-        (-> game
-            (discard-card [:players target :hand])
-            (draw-card target)))))
+    (if (= :princess target-card)
+      (kill-player game target)
+      (-> game
+          (discard-card [:players target :hand])
+          (draw-card target)))))
 
 (defn score-hand [player]
   (let [hand (player :hand)]
@@ -144,14 +149,12 @@
   (or (= 1 (count-alive game))
       (empty? (:deck game))))
 
-(defn countess-check [game player]
-  (let [hand (get-in game [:players player :hand])]
-    (->> hand
-         (map :face)
-         set
-         (set/intersection #{:prince :king})
-         count
-         (not= 0))))
+(defn countess-check [game player-id]
+  (->> (get-in game [:players player-id :hand])
+       (map :face)
+       set
+       (some #{:prince :king})
+       ((complement nil?))))
 
 (defn- valid-target? [current-player player]
   (and (not= current-player (:id player))

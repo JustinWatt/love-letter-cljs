@@ -3,13 +3,13 @@
             [clojure.string :as s]))
 
 (defn card-item [card]
-  (let [{:keys [face value]} card]
+  (let [{:keys [face value visible]} card]
     ^{:key (rand-int 10000)}
     [:li
      [:span
       {:on-mouse-over #(dispatch [:set-display-card face])
        :on-mouse-out  #(dispatch [:set-display-card nil])}
-      (str (s/capitalize (name face)) " " value)]]))
+      (str (s/capitalize (name face)) " " value (when-not (empty? visible) (str " " visible)) )]]))
 
 (defn card-list [deck]
   [:ul
@@ -22,11 +22,11 @@
 
 (defn card-list-with-button [deck phase]
   [:ul
-   (for [card deck]
-     (do [card-item card]
-         (when (= phase :play) ^{:key (rand-int 1000)}
-           [:li
-            [play-button (:face card)]])))])
+   (when (= phase :play)
+     (map-indexed
+      (fn [i card]
+        ^{:key (str "card" i)}
+        [:li [play-button (:face card)]]) deck))])
 
 (defn draw-button [id]
   [:button {:type "button"
@@ -56,12 +56,17 @@
     (fn []
       [:div
        (if (empty? @targets)
-         [:button {:on-click #(dispatch [:discard-without-effect])} "No Valid Targets"]
+         [:button
+          {:on-click #(dispatch [:discard-without-effect])}
+          "No Valid Targets"]
          [:ul
-          (for [t @targets]
-            ^{:key (str "target-" t)}
-            [:button {:id (str "target-" t)
-                      :on-click #(dispatch [:set-target t])} (str "Player " t)])])])))
+          (map-indexed
+           (fn [i target]
+             ^{:key (str "target" i)}
+             [:button
+              {:on-click #(dispatch [:set-target target])}
+              (str "Player " target)])
+           @targets)])])))
 
 (def card-faces
   [:priest
@@ -74,6 +79,7 @@
 
 (defn guard-guess-button [face]
   [:button {:on-click #(dispatch [:set-guard-guess face])} (name face)])
+
 (defn guard-control []
   [:div
    (map-indexed (fn [i face]
@@ -136,7 +142,7 @@
             [:h3 "Burn Pile ("(str (count @burn-pile))")"]
             [card-list @burn-pile]
             [command-panel]
-            [:div (str @app-state)]]]
+            #_[:div (str @app-state)]]]
 
           [:div.row
            [:div.col-md-4.col-sm-4.col-xs-4
@@ -145,7 +151,7 @@
 
            [:div.col-md-4.col-sm-4.col-xs-4
             [:h3 "Discard Pile ("(str (count @discard-pile))")"]
-            [:div {:style {:height "50px" :width "35px"
+            #_[:div {:style {:height "50px" :width "35px"
                            :background-color "#7f0000"
                            :border-radius "3px"
                            :text-align "center"

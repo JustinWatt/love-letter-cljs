@@ -1,11 +1,7 @@
 (ns love-letter-cljs.handlers
     (:require [re-frame.core :refer [dispatch register-handler]]
               [love-letter-cljs.db :as db]
-              [love-letter-cljs.game :as l]))
-
-(defn remove-first [face coll]
- (let [[pre post] (split-with #(not= face (:face %)) coll)]
-    (vec (concat pre (rest post)))))
+              [love-letter-cljs.game :as g]))
 
 (register-handler
  :initialize-db
@@ -13,36 +9,24 @@
    db/default-db))
 
 (defn reset-state [db]
-  (assoc-in db [:state]
-            {:display-card nil
-             :phase :draw
-             :active-card nil
-             :guard-guess nil
-             :card-target nil
-             :log []}))
+  (update-in db [:state] merge {:display-card nil
+                                :phase :draw
+                                :active-card nil
+                                :guard-guess nil
+                                :card-target nil
+                                :log []}))
 
 (register-handler
  :new-game
  (fn [db _]
    (-> db
        (reset-state)
-       (assoc-in [:game] (l/create-and-deal)))))
-
-(register-handler
- :reset-state
- (fn [db _]
-    (reset-state db)))
+       (update-in [:game] merge (g/create-and-deal)))))
 
 (register-handler
  :set-display-card
  (fn [db [_ face]]
    (assoc-in db [:state :display-card] face)))
-
-(defn handle-countess [db player-id]
-  (let [path  [:game :players player-id :hand]
-        hand  (get-in db path)
-        hand' (remove-first :countess hand)]
-    (assoc-in db path hand')))
 
 (defn set-phase [db phase]
   (assoc-in db [:state :phase] phase))
@@ -52,26 +36,32 @@
  (fn [db [_ phase]]
    (set-phase db phase)))
 
+(defn transition-from-play-phase [db face]
+  (case face
+    :princess (set-phase db :resolution)
+    :handmaid (set-phase db :resolution)
+    :countess (set-phase db :resolution)
+    (set-phase db :target)))
+
 (register-handler
  :set-active-card
  (fn [db [_ face]]
-   (as-> db d
-     (assoc-in d [:state :active-card] face)
-     (condp = face
-       :princess (set-phase d :resolution)
-       :handmaid (set-phase d :resolution)
-       :countess (set-phase d :resolution)
-       (set-phase d :target)))))
+   (-> db
+       (assoc-in [:state :active-card] face)
+       (transition-from-play-phase face))))
+
+(defn transition-from-target-phase [db face]
+  (if (= :guard face)
+    (set-phase db :guard)
+    (set-phase db :resolution)))
 
 (register-handler
  :set-target
  (fn [db [_ target-id]]
-   (let [active-card (:active-card (:state db))]
-     (as-> db d
-       (assoc-in d [:state :card-target] target-id)
-       (condp = active-card
-         :guard (set-phase d :guard)
-         (set-phase d :resolution))))))
+   (let [active-card (-> db :state :active-card)]
+     (-> db
+         (assoc-in [:state :card-target] target-id)
+         (transition-from-target-phase active-card)))))
 
 (register-handler
  :set-guard-guess
@@ -98,7 +88,7 @@
   (let [current-player (:current-player (:game db))
         players        (player-list (:game db))
         next-player    (next-in-list players current-player)]
-    (if (l/game-complete? (:game db))
+    (if (g/game-complete? (:game db))
       (set-phase db :complete)
       (-> db
           (assoc-in [:game :current-player] next-player)
@@ -110,30 +100,30 @@
  (fn [db _]
    (start-next-turn db)))
 
-(register-handler
- :draw-card
- (fn [db [_ player-id]]
-   (as-> db d
-     (assoc-in d [:game] (l/draw-card (:game db) player-id))
-     (if (l/countess-check d player-id)
-       (-> d
-           (handle-countess player-id)
-           (start-next-turn))
-       d))))
-
 (defn retrieve-card [db face current-player]
   (let [path [:game :players current-player :hand]]
     (->> (get-in db path)
          (filter #(= face (:face %)))
          first)))
 
-(defn play-card [db face current-player]
-  (let [path [:game :players current-player :hand]
-        discarded-card (retrieve-card db face current-player)
+(defn play-card [db face player-id]
+  (let [path [:game :players player-id :hand]
+        discarded-card (retrieve-card db face player-id)
         discard-pile (get-in db [:game :discard-pile])]
     (-> db
-        (assoc-in path (remove-first face (get-in db path)))
-        (assoc-in [:game :discard-pile] (conj discard-pile discarded-card)))))
+        (assoc-in path (g/remove-first face (get-in db path)))
+        (update-in [:game :discard-pile] conj discarded-card))))
+
+(register-handler
+ :draw-card
+ (fn [db [_ player-id]]
+   (as-> db d
+     (assoc-in d [:game] (g/draw-card (:game db) player-id))
+     #_(if (g/countess-check (:game d) player-id)
+       (-> d
+           (play-card :countess player-id)
+           (start-next-turn))
+       d))))
 
 (defn update-game [db game]
   (assoc db :game game))
@@ -142,16 +132,16 @@
   (let [{:keys [card-target active-card guard-guess]} (:state db)
         game (:game db)
         current-player (:current-player game)]
-    (condp = active-card
-      :prince   (update-game db (l/prince-ability game card-target))
-      :guard    (update-game db (l/guard-ability  game guard-guess card-target))
-      :baron    (update-game db (l/baron-ability  game current-player card-target))
-      :king     (update-game db (l/king-ability   game current-player card-target))
-      :handmaid (update-game db (l/handmaid-ability game current-player))
+    (case active-card
+      :prince   (update-game db (g/prince-ability   game card-target))
+      :guard    (update-game db (g/guard-ability    game guard-guess card-target))
+      :baron    (update-game db (g/baron-ability    game current-player card-target))
+      :king     (update-game db (g/king-ability     game current-player card-target))
+      :handmaid (update-game db (g/handmaid-ability game current-player))
       :countess db
-      :priest   db
-      :princess (update-game db (l/kill-player game current-player))
-      db)))
+      :priest   (update-game db (g/reveal-card-to-player game current-player card-target))
+      :princess (update-game db (g/kill-player game current-player))
+      :default db)))
 
 (register-handler
  :resolve-effect
