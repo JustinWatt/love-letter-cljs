@@ -167,7 +167,7 @@
         :players
         vals
         (->>
-         (filter #(valid-target? current-player %))
+         (filter (partial valid-target? current-player))
          (map :id)))))
 
 (defn remove-protection [game]
