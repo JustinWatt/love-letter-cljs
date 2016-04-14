@@ -1,13 +1,6 @@
 (ns love-letter-cljs.ai
   (:require [love-letter-cljs.game :as g]))
 
-(def action-types [:suicide
-                   :eliminate
-                   :assist
-                   :survive
-                   :high-card
-                   :defensive :bluff])
-
 ;;; AI STUFF
 
 (def test-game
@@ -32,12 +25,12 @@
                 :protected? false}
 
              2 {:id 2
-                :hand [{:face :guard :value 1 :visible [1]}]
+                :hand [{:face :guard :value 1 :visible []}]
                 :alive? true
                 :protected? false}
 
              3 {:id 3
-                :hand [{:face :princess :value 8 :visible []}]
+                :hand [{:face :princess :value 8 :visible [1]}]
                 :alive? true
                 :protected? false}
 
@@ -57,7 +50,6 @@
 (defn player-hand [game id]
   (get-in game [:players id :hand]))
 
-
 (defn filter-fresh-deck [card-list]
   (reduce (fn [deck card]
            (g/remove-first card deck)) (g/generate-deck) card-list))
@@ -72,9 +64,8 @@
               (count filtered-deck)))))
 
 ;; Game -> Id -> Card -> Float
-(defn guard-probability [game target-player guess]
+(defn guard-probability [game target-player guess-face]
   (let [{:keys [discard-pile current-player]} game
-        guess-face (:face guess)
         current-player-hand (player-hand game current-player)
         known-list (mapv :face (concat discard-pile current-player-hand))
         visible-card (known-card game current-player target-player)
@@ -83,6 +74,8 @@
       (if (= (:face visible-card) guess-face) 100 0)
       (* 100 (/ (count (filter #(= guess-face (:face %)) filtered-deck))
                 (count filtered-deck))))))
+
+(guard-probability test-game 3 :countess)
 
 (defn baron-probability [game player-card target-player]
   (let [{:keys [discard-pile current-player]} game
@@ -168,5 +161,46 @@
         current-player-hand (player-hand game current-player)]
     (if (holding-princess? current-player-hand) 0 100)))
 
+
 (defn handmaid-defensive-probability [] 100)
+
+
+(defn valid-targets [game current-player]
+  (map :id (filter #(and (not= current-player (:id %))
+                (:alive? %)) (vals (:players game)))))
+
+
+(def card-faces #{:guard :priest :baron :handmaid :prince :king :countess :princess})
+
+(defn guard-prob-inputs [game]
+  (let [current-player (:current-player game)
+        targets (valid-targets game current-player)
+        faces   (remove #{:guard} card-faces)]
+    (for [t targets
+          f faces]
+      [t f])))
+
+(defn generate-eliminate-guard-action
+  [game [target guess]]
+  {:action {:current-player (:current-player game)
+            :active-card :guard
+            :target target
+            :guard-guess guess}
+   :type :eliminate
+   :strength (guard-probability game target guess)})
+
+(def action-types [:suicide
+                   :eliminate
+                   :assist
+                   :survive
+                   :high-card
+                   :defensive
+                   :bluff])
+
+[{:action {:target nil
+           :guard-guess nil
+           :active-card nil
+           :current-player nil}
+  :type :defense
+  :strength 100}]
 
