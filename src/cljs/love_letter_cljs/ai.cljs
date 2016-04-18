@@ -66,8 +66,8 @@
   (let [{:keys [discard-pile current-player]} game
         {:keys [face value]} card
         current-player-hand (player-hand game current-player)
-        known-list (vec (map :face (concat discard-pile current-player-hand)))
-        filtered-deck (filter-fresh-deck known-list)]
+        known-list          (vec (map :face (concat discard-pile current-player-hand)))
+        filtered-deck       (filter-fresh-deck known-list)]
     (* 100 (/ (count (filter #(>= value (:value %)) filtered-deck))
               (count filtered-deck)))))
 
@@ -76,9 +76,9 @@
   (let [{:keys [discard-pile current-player]} game
         guess-face (:face guess)
         current-player-hand (player-hand game current-player)
-        known-list (mapv :face (concat discard-pile current-player-hand))
-        visible-card (known-card game current-player target-player)
-        filtered-deck (filter-fresh-deck known-list)]
+        known-list          (mapv :face (concat discard-pile current-player-hand))
+        visible-card        (known-card game current-player target-player)
+        filtered-deck       (filter-fresh-deck known-list)]
     (if visible-card
       (if (= (:face visible-card) guess-face) 100 0)
       (* 100 (/ (count (filter #(= guess-face (:face %)) filtered-deck))
@@ -169,4 +169,62 @@
     (if (holding-princess? current-player-hand) 0 100)))
 
 (defn handmaid-defensive-probability [] 100)
+
+(defn valid-targets [game current-player]
+  (map :id (filter #(and (not= current-player (:id %))
+                (:alive? %)) (vals (:players game)))))
+
+(def card-faces
+  #{:guard
+    :priest
+    :baron
+    :handmaid
+    :prince
+    :king
+    :countess
+    :princess})
+
+(defn guard-prob-inputs [game]
+  (let [current-player (:current-player game)
+        targets (valid-targets game current-player)
+        faces   (remove #{:guard} card-faces)]
+    (for [t targets
+          f faces]
+      [t f])))
+
+(defn guard-elimination-action
+  [game [target guess]]
+  {:action {:current-player (:current-player game)
+            :active-card :guard
+            :target target
+            :guard-guess guess}
+   :type :eliminate
+   :strength (guard-probability game target guess)})
+
+(defn generate-high-card-action [game card]
+  {:action {:current-player (:current-player game)
+            :active-card (:face card)
+            :target nil
+            :guard-guess nil}
+   :type :high-card
+   :strength (high-card game card)})
+
+(defn generate-actions [game card]
+  (conj (mapv #(guard-elimination-action game %) (guard-prob-inputs game))
+        (generate-high-card-action game card)))
+
+(def action-types [:suicide
+                   :eliminate
+                   :assist
+                   :survive
+                   :high-card
+                   :defensive
+                   :bluff])
+
+[{:action {:target nil
+           :guard-guess nil
+           :active-card nil
+           :current-player nil}
+  :type :defense
+  :strength 100}]
 
