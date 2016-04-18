@@ -62,7 +62,7 @@
   (let [cards (get-in game source)]
     (-> game
         (update-in [:discard-pile] into (vec (take 1 cards)))
-        (assoc-in source (drop 1 cards)))))
+        (assoc-in source (vec (drop 1 cards))))))
 
 (defn find-card [game target]
   (-> game
@@ -173,4 +173,3 @@
 
 (defn remove-protection [game]
   (assoc-in game [:players (:current-player game) :protected?] false))
-

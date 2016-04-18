@@ -213,15 +213,7 @@
   (conj (mapv #(guard-elimination-action game %) (guard-prob-inputs game))
         (generate-high-card-action game card)))
 
-(def action-types [:suicide
-                   :eliminate
-                   :assist
-                   :survive
-                   :high-card
-                   :defensive
-                   :bluff])
-
-[{:action {:target nil
+#_[{:action {:target nil
            :guard-guess nil
            :active-card nil
            :current-player nil}
