@@ -19,7 +19,7 @@
     (repeat count {:face face :value value :visible []})))
 
 (defn generate-deck []
-  (vec (shuffle (mapcat generate-card cards))))
+  (-> (mapcat generate-card cards) shuffle vec))
 
 (defn create-player [n]
   {:id n
@@ -67,7 +67,7 @@
 (defn find-card [game target]
   (-> game
       (get-in [:players target :hand])
-      first))
+      peek))
 
 (defn create-and-deal []
   (-> (create-game)
@@ -123,7 +123,7 @@
   (let [hand (player :hand)]
     (merge
      (select-keys player [:id])
-     (select-keys (first hand) [:face :value]))))
+     (select-keys (peek hand) [:face :value]))))
 
 (defn score-game [game]
   (-> game
