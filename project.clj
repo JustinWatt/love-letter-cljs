@@ -21,7 +21,7 @@
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]
                                   [figwheel-sidecar "0.5.0-2"]]
                    :source-paths ["cljs_src" "dev"]}
-             :repl {:plugins [[cider/cider-nrepl "0.12.0-SNAPSHOT"]]}}
+             :repl {:plugins [[cider/cider-nrepl "0.12.0"]]}}
 
   :figwheel-options {:port 7888}
 

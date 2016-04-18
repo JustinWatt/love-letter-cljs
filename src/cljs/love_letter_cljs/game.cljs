@@ -19,7 +19,7 @@
     (repeat count {:face face :value value :visible []})))
 
 (defn generate-deck []
-  (vec (shuffle (mapcat generate-card cards))))
+  (-> (mapcat generate-card cards) shuffle vec))
 
 (defn create-player [n]
   {:id n
@@ -62,12 +62,12 @@
   (let [cards (get-in game source)]
     (-> game
         (update-in [:discard-pile] into (vec (take 1 cards)))
-        (assoc-in source (drop 1 cards)))))
+        (assoc-in source (vec (drop 1 cards))))))
 
 (defn find-card [game target]
   (-> game
       (get-in [:players target :hand])
-      first))
+      peek))
 
 (defn create-and-deal []
   (-> (create-game)
@@ -107,12 +107,13 @@
   (let [player-card (find-card game player)
         target-card (find-card game target)]
     (-> game
-        (assoc-in [:players target :hand] [player-card])
-        (assoc-in [:players player :hand] [target-card]))))
+        (assoc-in [:players target :hand] [(update-in player-card [:visible] conj [player])])
+        (assoc-in [:players player :hand] [(update-in target-card [:visible] conj [target])]))))
+
 
 (defn prince-ability [game target]
   (let [target-card (find-card game target)]
-    (if (= :princess target-card)
+    (if (= :princess (:face target-card))
       (kill-player game target)
       (-> game
           (discard-card [:players target :hand])
@@ -122,7 +123,7 @@
   (let [hand (player :hand)]
     (merge
      (select-keys player [:id])
-     (select-keys (first hand) [:face :value]))))
+     (select-keys (peek hand) [:face :value]))))
 
 (defn score-game [game]
   (-> game
@@ -172,4 +173,3 @@
 
 (defn remove-protection [game]
   (assoc-in game [:players (:current-player game) :protected?] false))
-
