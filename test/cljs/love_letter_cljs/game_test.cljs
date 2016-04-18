@@ -79,12 +79,12 @@
 
 (deftest king-ability-test
   (testing "Target gains players card"
-    (is (= [{:face :guard :value 1 :visible []}]
+    (is (= [{:face :guard :value 1 :visible [1]}]
            (-> test-game-a
                (sut/king-ability 1 2)
                (get-in [:players 2 :hand])))))
   (testing "Player gains targets card"
-    (is (= [{:face :priest :value 2 :visible []}]
+    (is (= [{:face :priest :value 2 :visible [2]}]
            (-> test-game-a
                (sut/king-ability 1 2)
                (get-in [:players 1 :hand]))))))

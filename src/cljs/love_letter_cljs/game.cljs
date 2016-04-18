@@ -107,8 +107,8 @@
   (let [player-card (find-card game player)
         target-card (find-card game target)]
     (-> game
-        (assoc-in [:players target :hand] [(update-in player-card [:visible] conj [player])])
-        (assoc-in [:players player :hand] [(update-in target-card [:visible] conj [target])]))))
+        (assoc-in [:players target :hand] [(update-in player-card [:visible] conj player)])
+        (assoc-in [:players player :hand] [(update-in target-card [:visible] conj target)]))))
 
 
 (defn prince-ability [game target]
