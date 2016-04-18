@@ -113,7 +113,7 @@
 
 (defn prince-ability [game target]
   (let [target-card (find-card game target)]
-    (if (= :princess target-card)
+    (if (= :princess (:face target-card))
       (kill-player game target)
       (-> game
           (discard-card [:players target :hand])
