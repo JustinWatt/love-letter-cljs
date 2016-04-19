@@ -46,7 +46,7 @@
   (let [deck (:deck game)]
     (-> game
         (update-in [:players player-id :hand] into (take 1 deck))
-        (assoc :deck (drop 1 deck)))))
+        (assoc :deck (vec (drop 1 deck))))))
 
 (defn deal-cards [game]
   (let [player-ids (keys (:players game))]
