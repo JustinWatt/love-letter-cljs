@@ -109,6 +109,17 @@
         (map-indexed (fn [id {date :date message :message from :from}]
                        ^{:key id}[:li (str date "| " from "> " message)]) (take 10 @log))]])))
 
+(defn secret-controls []
+  (let [redos? (subscribe [:redos?])
+        undos? (subscribe [:undos?])
+        undo-list (subscribe [:undo-explanations])
+        redo-list (subscribe [:redo-explanations])]
+    [:div
+     [:button {:on-click #(dispatch [:undo]) :disabled (not @undos?)}(str "Undo " (count @undo-list))]
+     [:button {:on-click #(dispatch [:redo]) :disabled (not @redos?)}(str "Redo " (count @redo-list) )]
+     [:button {:on-click #(dispatch [:purge-redos]) :disabled (not @redos?)} (str "Clear History")]
+     ]))
+
 
 (defn main-panel []
   (let [deck           (subscribe [:deck])
@@ -138,6 +149,7 @@
              @players)]
 
            [:div.col-md-4.col-sm-4.col-xs-4
+            [secret-controls]
             [:h3 "Burn Pile ("(str (count @burn-pile))")"]
             [card-list @burn-pile]
             [command-panel]
