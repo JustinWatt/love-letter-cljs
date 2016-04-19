@@ -126,7 +126,7 @@
  (fn [db [_ player-id]]
    (as-> db d
      (merge d (g/draw-card db player-id))
-     #_(if (g/countess-check (:game d) player-id)
+     (if (g/countess-check d player-id)
        (-> d
            (play-card :countess player-id)
            (start-next-turn))
