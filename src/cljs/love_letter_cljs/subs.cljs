@@ -6,28 +6,28 @@
 (register-sub
  :deck
  (fn [db]
-   (reaction (get-in @db [:deck]))))
+   (reaction (@db :deck))))
 
 (register-sub
  :burn-pile
  (fn [db]
-   (reaction (get-in @db [:burn-pile]))))
+   (reaction (@db :burn-pile))))
 
 (register-sub
  :discard-pile
  (fn [db]
-   (reaction (get-in @db [:discard-pile]))))
+   (reaction (@db :discard-pile))))
 
 (register-sub
  :current-player
  (fn [db]
-   (reaction (get-in @db [:current-player]))))
+   (reaction (@db :current-player))))
 
 (register-sub
  :players
  (fn [db]
    (reaction
-    (->> (get-in @db [:players])
+    (->> (@db :players)
          vals
          vec))))
 
@@ -44,7 +44,7 @@
 (register-sub
  :display-card
  (fn [db]
-   (reaction (get-in @db [:display-card]))))
+   (reaction (@db :display-card))))
 
 (register-sub
  :db
@@ -60,7 +60,7 @@
 (register-sub
  :current-phase
  (fn [db]
-   (reaction (get-in @db [:phase]))))
+   (reaction (@db :phase))))
 
 (register-sub
  :valid-targets
@@ -70,7 +70,7 @@
 (register-sub
  :debug-mode
  (fn [db]
-   (reaction (get-in @db [::debug-mode?]))))
+   (reaction (@db :debug-mode?))))
 
 (register-sub
  :log

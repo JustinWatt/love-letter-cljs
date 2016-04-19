@@ -1,5 +1,5 @@
 (ns love-letter-cljs.handlers
-    (:require [re-frame.core :refer [dispatch register-handler]]
+    (:require [re-frame.core :refer [undoable dispatch register-handler]]
               [love-letter-cljs.db :as db]
               [love-letter-cljs.game :as g]))
 
@@ -18,6 +18,7 @@
 
 (register-handler
  :new-game
+ (undoable)
  (fn [db _]
    (-> db
        (reset-state)
@@ -33,6 +34,7 @@
 
 (register-handler
  :set-phase
+ (undoable)
  (fn [db [_ phase]]
    (set-phase db phase)))
 
@@ -45,6 +47,7 @@
 
 (register-handler
  :set-active-card
+ (undoable)
  (fn [db [_ face]]
    (-> db
        (assoc-in [:active-card] face)
@@ -57,6 +60,7 @@
 
 (register-handler
  :set-target
+ (undoable)
  (fn [db [_ target-id]]
    (let [active-card (:active-card db)]
      (-> db
@@ -65,6 +69,7 @@
 
 (register-handler
  :set-guard-guess
+ (undoable)
  (fn [db [_ face]]
    (-> db
        (assoc-in [:guard-guess] face)
@@ -97,6 +102,7 @@
 
 (register-handler
  :next-player
+ (undoable)
  (fn [db _]
    (start-next-turn db)))
 
@@ -116,10 +122,11 @@
 
 (register-handler
  :draw-card
+ (undoable)
  (fn [db [_ player-id]]
    (as-> db d
      (merge d (g/draw-card db player-id))
-     #_(if (g/countess-check (:game d) player-id)
+     (if (g/countess-check d player-id)
        (-> d
            (play-card :countess player-id)
            (start-next-turn))
@@ -142,6 +149,7 @@
 
 (register-handler
  :resolve-effect
+ (undoable)
  (fn [db _]
    (let [active-card    (:active-card db)
          current-player (:current-player db)]
@@ -152,6 +160,7 @@
 
 (register-handler
  :discard-without-effect
+ (undoable)
  (fn [db]
    (let [active-card    (:active-card db)
          current-player (:current-player db)]
@@ -161,6 +170,7 @@
 
 (register-handler
  :toggle-debug-mode
+ (undoable)
  (fn [db]
    (update db :debug-mode? not)))
 

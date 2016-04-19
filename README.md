@@ -1,3 +1,4 @@
+[![Circle CI](https://circleci.com/gh/JustinWatt/love-letter-cljs/tree/dev.svg?style=svg)](https://circleci.com/gh/JustinWatt/love-letter-cljs/tree/dev)
 # love-letter-cljs
 
 Implementation of the game Love Letter in clojurescript using re-frame.
