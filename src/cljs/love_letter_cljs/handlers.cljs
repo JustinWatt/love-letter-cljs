@@ -1,8 +1,11 @@
 (ns love-letter-cljs.handlers
-    (:require [re-frame.core :refer [undoable dispatch register-handler]]
+    (:require [re-frame.core :refer [after debug undoable dispatch register-handler]]
               [love-letter-cljs.db :as db]
               [love-letter-cljs.utils :as u]
               [love-letter-cljs.game :as g]))
+
+(def standard-middlewares [(when ^boolean goog.DEBUG debug)
+                           (when ^boolean goog.DEBUG (after db/valid-schema?))]) 
 
 (register-handler
  :initialize-db
@@ -19,7 +22,7 @@
 
 (register-handler
  :new-game
- (undoable)
+ [(undoable) standard-middlewares]
  (fn [db _]
    (-> db
        (reset-state)
@@ -27,6 +30,7 @@
 
 (register-handler
  :set-display-card
+ standard-middlewares
  (fn [db [_ face]]
    (assoc-in db [:display-card] face)))
 
@@ -35,7 +39,8 @@
 
 (register-handler
  :set-phase
- (undoable)
+ [(undoable)
+       standard-middlewares]
  (fn [db [_ phase]]
    (set-phase db phase)))
 
@@ -48,7 +53,8 @@
 
 (register-handler
  :set-active-card
- (undoable)
+ [(undoable)
+ standard-middlewares]
  (fn [db [_ face]]
    (-> db
        (assoc-in [:active-card] face)
@@ -61,7 +67,8 @@
 
 (register-handler
  :set-target
- (undoable)
+ [(undoable)
+ standard-middlewares]
  (fn [db [_ target-id]]
    (let [active-card (:active-card db)]
      (-> db
@@ -70,7 +77,8 @@
 
 (register-handler
  :set-guard-guess
- (undoable)
+ [(undoable)
+       standard-middlewares]
  (fn [db [_ face]]
    (-> db
        (assoc-in [:guard-guess] face)
@@ -103,7 +111,8 @@
 
 (register-handler
  :next-player
- (undoable)
+ [(undoable)
+ standard-middlewares]
  (fn [db _]
    (start-next-turn db)))
 
@@ -123,7 +132,8 @@
 
 (register-handler
  :draw-card
- (undoable)
+ [(undoable)
+ standard-middlewares]
  (fn [db [_ player-id]]
    (as-> db d
      (merge d (g/draw-card db player-id))
@@ -150,7 +160,8 @@
 
 (register-handler
  :resolve-effect
- (undoable)
+ [(undoable)
+ standard-middlewares]
  (fn [db _]
    (let [active-card    (:active-card db)
          current-player (:current-player db)]
@@ -161,7 +172,8 @@
 
 (register-handler
  :discard-without-effect
- (undoable)
+ [(undoable)
+ standard-middlewares]
  (fn [db]
    (let [active-card    (:active-card db)
          current-player (:current-player db)]
@@ -171,12 +183,14 @@
 
 (register-handler
  :toggle-debug-mode
+ standard-middlewares
  (fn [db]
    (update db :debug-mode? not)))
 
 
 (register-handler
  :load-game
+ standard-middlewares
  (fn [db [_ game]]
    (merge db game)))
 

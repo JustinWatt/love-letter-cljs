@@ -26,7 +26,6 @@
    :burn-pile    card-pile
    :players      {s/Int player}
    :current-player player-id
-   :selected-card (s/maybe card-face)
 
    :display-card (s/maybe card-face)
    :phase        (s/enum :draw :play :guard :target :resolution)
@@ -34,7 +33,7 @@
    :guard-guess  (s/maybe card-face)
    :card-target  (s/maybe player-id)
    :debug-mode?   s/Bool
-   :log          [(s/maybe {:time s/Str :message s/Str})]})
+   :log          (s/maybe [(s/maybe {:from s/Str :time s/Str :message s/Str})])})
 
 (def default-db
   (merge
@@ -46,7 +45,7 @@
     :card-target nil
     :debug-mode? true
     :log [{:from "System"
-           :date (.toLocaleTimeString (js/Date.))
+           :time (.toLocaleTimeString (js/Date.))
            :message "Welcome to the Game"}]}))
 
 (def action-types
@@ -67,4 +66,9 @@
    :target-card   :baron
    :action-score  30})
 
-
+(defn valid-schema?
+  "validate the given db, writing any problems to console.error"
+  [db]
+  (let [res (s/check app-schema db)]
+    (if (some? res)
+      (.error js/console (str "schema problem: " res)))))
