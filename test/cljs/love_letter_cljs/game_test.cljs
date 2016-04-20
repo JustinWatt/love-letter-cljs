@@ -5,23 +5,23 @@
 ;; helpers
 (defn discard-n [game n]
   (->> game
-       (iterate #(sut/discard-card % [:deck]))
+       (iterate #(sut/move-card % [:deck] [:discard-pile]))
        (drop n)
        first))
 
 ;; (create-and-deal)
 (def test-game-a
-  {:deck '({:face :guard,    :value 1 :visible []}
-           {:face :baron,    :value 3 :visible []}
-           {:face :priest,   :value 2 :visible []}
-           {:face :guard,    :value 1 :visible []}
-           {:face :handmaid, :value 4 :visible []}
-           {:face :prince,   :value 5 :visible []}
-           {:face :handmaid, :value 4 :visible []}
-           {:face :guard,    :value 1 :visible []}
-           {:face :princess, :value 8 :visible []}
-           {:face :baron,    :value 3 :visible []}
-           {:face :king,     :value 6 :visible []}),
+  {:deck [{:face :guard,    :value 1 :visible []}
+          {:face :baron,    :value 3 :visible []}
+          {:face :priest,   :value 2 :visible []}
+          {:face :guard,    :value 1 :visible []}
+          {:face :handmaid, :value 4 :visible []}
+          {:face :prince,   :value 5 :visible []}
+          {:face :handmaid, :value 4 :visible []}
+          {:face :guard,    :value 1 :visible []}
+          {:face :princess, :value 8 :visible []}
+          {:face :baron,    :value 3 :visible []}
+          {:face :king,     :value 6 :visible []}],
    :discard-pile [],
    :players {1 {:id 1, :hand [{:face :guard,  :value 1 :visible []}], :alive? true, :protected? true},
              2 {:id 2, :hand [{:face :priest, :value 2 :visible []}], :alive? false},
@@ -84,12 +84,6 @@
                (sut/king-ability 1 2)
                (get-in [:players 1 :hand]))))))
 
-(deftest discard-card-test
-  (is (= [{:face :guard :value 1 :visible []}]
-         (-> test-game-a
-             (sut/discard-card [:players 1 :hand])
-             :discard-pile))))
-
 (deftest prince-ability-test
   (is (= [{:face :guard :value 1 :visible []}]
          (-> test-game-a
@@ -111,7 +105,10 @@
 (deftest countess-check-test
   (is (= true
          (-> test-game-a
-             (sut/countess-check 4)))))
+             (sut/countess-check 4))))
+  (is (= false
+         (-> test-game-a
+             (sut/countess-check 3)))))
 
 (deftest remove-protection-test
   (is (= false
