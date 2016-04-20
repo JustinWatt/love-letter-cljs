@@ -39,38 +39,26 @@
    :players (add-players 4)
    :current-player 1})
 
-(defn draw-card [game player-id]
-  (let [deck (:deck game)]
+(defn move-card [game source destination]
+  (let [card (first (get-in game source))]
     (-> game
-        (update-in [:players player-id :hand] into (take 1 deck))
-        (assoc :deck (drop 1 deck)))))
+        (update-in source (comp vec rest))
+        (update-in destination conj card))))
 
 (defn deal-cards [game]
   (let [player-ids (keys (:players game))]
-    (reduce draw-card game player-ids)))
-
-(defn burn-card [game]
-  (let [cards (:deck game)]
-    (-> game
-        (update-in [:burn-pile] into (vec (take 1 cards)))
-        (assoc :deck (drop 1 cards)))))
-
-(defn discard-card [game source]
-  (let [cards (get-in game source)]
-    (-> game
-        (update-in [:discard-pile] into (vec (take 1 cards)))
-        (assoc-in source (vec (drop 1 cards))))))
+    (reduce (fn [g id] (move-card g [:deck] [:players id :hand])) game player-ids)))
 
 (defn create-and-deal []
   (-> (create-game)
-      (burn-card)
+      (move-card [:deck] [:burn-pile])
       (deal-cards)))
 
 (defn- kill-player
   [game target]
   (-> game
       (update-in [:players target :alive?] not)
-      (discard-card [:players target :hand])))
+      (move-card [:players target :hand] [:discard-pile])))
 
 (defn reveal-card-to-player [game player target]
   (update-in game [:players target :hand 0 :visible] conj player))
