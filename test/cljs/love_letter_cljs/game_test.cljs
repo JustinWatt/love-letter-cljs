@@ -93,8 +93,7 @@
 (deftest prince-ability-test
   (is (= [{:face :guard :value 1 :visible []}]
          (-> test-game-a
-             (sut/discard-card [:players 2 :hand])
-             (sut/draw-card 2)
+             (sut/prince-ability 2)
              (get-in [:players 2 :hand])))))
 
 (deftest game-complete-non-empty-deck

@@ -95,8 +95,8 @@
     (if (= :princess (:face target-card))
       (kill-player game target)
       (-> game
-          (discard-card [:players target :hand])
-          (draw-card target)))))
+          (move-card [:players target :hand] [:discard-pile])
+          (move-card [:deck] [:players target :hand])))))
 
 (defn score-hand [player]
   (let [hand (player :hand)]
