@@ -124,24 +124,26 @@
 
 (defn play-card [db face player-id]
   (let [path [:players player-id :hand]
-        discarded-card (retrieve-card db face player-id)
-        discard-pile (:discard-pile db)]
+        discarded-card (retrieve-card db face player-id)]
+    (when (nil? discarded-card) (throw (js/Error. "Tried to discard a nil card")))
     (-> db
         (assoc-in path (u/remove-first face (get-in db path)))
         (update-in [:discard-pile] conj discarded-card))))
+
+(defn handle-draw-card [db player-id]
+  (let [with-card-drawn (g/move-card db [:deck] [:players player-id :hand])]
+    #_(if (g/countess-check with-card-drawn player-id)
+      (-> with-card-drawn
+          (play-card :countess player-id)
+          (start-next-turn)))
+      (set-phase with-card-drawn :play)))
 
 (register-handler
  :draw-card
  [(undoable)
  standard-middlewares]
  (fn [db [_ player-id]]
-   (as-> db d
-     (merge d (g/draw-card db player-id))
-     (if (g/countess-check d player-id)
-       (-> d
-           (play-card :countess player-id)
-           (start-next-turn))
-       d))))
+   (handle-draw-card db player-id)))
 
 (defn resolve-effect [db]
   (let [{:keys [card-target active-card guard-guess]} db
