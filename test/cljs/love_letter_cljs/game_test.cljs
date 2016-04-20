@@ -130,3 +130,10 @@
              (->> first
                   :visible)))))
 
+(deftest move-card-test
+  (is (= {:face :guard,:value 1 :visible []} 
+         (-> test-game-a
+             (sut/move-card [:deck] [:discard-pile])
+             (get-in [:discard-pile])
+             first))))
+
