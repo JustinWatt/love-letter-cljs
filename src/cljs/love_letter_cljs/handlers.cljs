@@ -86,7 +86,7 @@
 ;; For cycling turns
 (defn next-in-list [item-list current]
   (as-> item-list i
-    (drop-while #(not= current %) i)
+    (drop-while #(< current %) i)
     (or (first (next i))
         (first item-list))))
 
