@@ -132,7 +132,7 @@
     (fn []
       [:div.container-fluid
        [:button {:on-click #(dispatch [:toggle-debug-mode])} "Debug Mode"]
-       (if @debug?
+       (if-not @debug?
          [:div "Debug Mode"]
 
          [:div

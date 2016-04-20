@@ -50,11 +50,6 @@
    :current-player 1})
 ;; tests
 
-(deftest find-card-test
-  (is (= {:face :guard :value 1 :visible []}
-         (-> test-game-a
-             (sut/find-card 1)))))
-
 (deftest correct-card-count
   (is (= {:guard 5 :priest 2 :baron 2 :handmaid 2
           :prince 2 :king 1 :countess 1 :princess 1}
@@ -65,10 +60,10 @@
 
 (deftest baron-ability-test
   (testing "When a guard is compared to a priest the player with the guard is knocked out"
-      (is (= false
-             (-> test-game-a
-                 (sut/baron-ability 1 2)
-                 (get-in [:players 1 :alive?]))))))
+    (is (= false
+           (-> test-game-a
+               (sut/baron-ability 1 2)
+               (get-in [:players 1 :alive?]))))))
 
 (deftest guard-ability-test
   (testing "When the target's card is correctly guessed they are knocked out"
@@ -118,11 +113,6 @@
   (is (= true
          (-> test-game-a
              (sut/countess-check 4)))))
-
-(deftest valid-targets-test
-  (is (= '(3 4)
-         (-> test-game-a
-             sut/valid-targets))))
 
 (deftest remove-protection-test
   (is (= false
