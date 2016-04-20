@@ -30,8 +30,7 @@
 
 (defn draw-button [id]
   [:button {:type "button"
-            :on-click #(do (dispatch [:draw-card id])
-                           (dispatch [:set-phase :play]))} "Draw"])
+            :on-click #(dispatch [:draw-card id])} "Draw"])
 
 (defn player-component [player]
   (let [{:keys [id hand alive? protected?]} player]
@@ -132,7 +131,7 @@
     (fn []
       [:div.container-fluid
        [:button {:on-click #(dispatch [:toggle-debug-mode])} "Debug Mode"]
-       (if @debug?
+       (if-not @debug?
          [:div "Debug Mode"]
 
          [:div
