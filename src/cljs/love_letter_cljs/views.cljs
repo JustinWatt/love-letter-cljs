@@ -30,8 +30,7 @@
 
 (defn draw-button [id]
   [:button {:type "button"
-            :on-click #(do (dispatch [:draw-card id])
-                           (dispatch [:set-phase :play]))} "Draw"])
+            :on-click #(dispatch [:draw-card id])} "Draw"])
 
 (defn player-component [player]
   (let [{:keys [id hand alive? protected?]} player]
