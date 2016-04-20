@@ -59,11 +59,6 @@
        (assoc-in [:active-card] face)
        (transition-phase :play face))))
 
-(defn transition-from-target-phase [db face]
-  (if (= :guard face)
-    (set-phase db :guard)
-    (set-phase db :resolution)))
-
 (register-handler
  :set-target
  [(undoable)
