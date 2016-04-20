@@ -3,7 +3,8 @@
                  [org.clojure/clojurescript "1.8.40"]
                  [reagent "0.6.0-alpha"]
                  [re-frame "0.7.0"]
-                 [prismatic/schema "1.1.0"]]
+                 [prismatic/schema "1.1.0"]
+                 [org.clojure/core.match "0.3.0-alpha4"]]
 
   :min-lein-version "2.5.3"
 

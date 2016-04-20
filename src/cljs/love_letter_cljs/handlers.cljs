@@ -2,7 +2,8 @@
     (:require [re-frame.core :refer [after debug undoable dispatch register-handler]]
               [love-letter-cljs.db :as db]
               [love-letter-cljs.utils :as u]
-              [love-letter-cljs.game :as g]))
+              [love-letter-cljs.game :as g]
+              [cljs.core.match :refer-macros [match]]))
 
 (def standard-middlewares [(when ^boolean goog.DEBUG debug)
                            (when ^boolean goog.DEBUG (after db/valid-schema?))]) 
@@ -37,19 +38,17 @@
 (defn set-phase [db phase]
   (assoc-in db [:phase] phase))
 
-(register-handler
- :set-phase
- [(undoable)
-       standard-middlewares]
- (fn [db [_ phase]]
-   (set-phase db phase)))
-
-(defn transition-from-play-phase [db face]
-  (case face
-    :princess (set-phase db :resolution)
-    :handmaid (set-phase db :resolution)
-    :countess (set-phase db :resolution)
-    (set-phase db :target)))
+(defn transition-phase [db from face]
+  (match [from face]
+    [:draw _]         (set-phase db :play)
+    [:play :princess] (set-phase db :resolution)
+    [:play :handmaid] (set-phase db :resolution)
+    [:play :countess] (set-phase db :resolution)
+    [:play _]         (set-phase db :target)
+    [:target :guard]  (set-phase db :guard)
+    [:target _]       (set-phase db :resolution)
+    [:guard _]        (set-phase db :resolution)
+    [:resolution _]   (set-phase db :draw)))
 
 (register-handler
  :set-active-card
@@ -58,7 +57,7 @@
  (fn [db [_ face]]
    (-> db
        (assoc-in [:active-card] face)
-       (transition-from-play-phase face))))
+       (transition-phase :play face))))
 
 (defn transition-from-target-phase [db face]
   (if (= :guard face)
@@ -73,7 +72,7 @@
    (let [active-card (:active-card db)]
      (-> db
          (assoc-in [:card-target] target-id)
-         (transition-from-target-phase active-card)))))
+         (transition-phase :target active-card)))))
 
 (register-handler
  :set-guard-guess
@@ -82,7 +81,7 @@
  (fn [db [_ face]]
    (-> db
        (assoc-in [:guard-guess] face)
-       (set-phase :resolution))))
+       (transition-phase :guard _))))
 
 ;; For cycling turns
 (defn next-in-list [item-list current]
@@ -108,13 +107,6 @@
           (assoc-in [:current-player] next-player)
           (assoc-in [:players next-player :protected?] false)
           (set-phase :draw)))))
-
-(register-handler
- :next-player
- [(undoable)
- standard-middlewares]
- (fn [db _]
-   (start-next-turn db)))
 
 (defn retrieve-card [db face current-player]
   (let [path [:players current-player :hand]]
