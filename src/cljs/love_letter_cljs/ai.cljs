@@ -1,5 +1,5 @@
 (ns love-letter-cljs.ai
-  (:require [love-letter-cljs.game :as g]))
+  (:require [love-letter-cljs.utils :as u]))
 
 (def action-types [:suicide
                    :eliminate
@@ -9,6 +9,23 @@
                    :defensive :bluff])
 
 ;;; AI STUFF
+(def complete-deck
+  [{:face :handmaid :value 4 :visible []}
+   {:face :guard    :value 1 :visible []}
+   {:face :baron    :value 3 :visible []}
+   {:face :prince   :value 5 :visible []}
+   {:face :priest   :value 2 :visible []}
+   {:face :guard    :value 1 :visible []}
+   {:face :handmaid :value 4 :visible []}
+   {:face :king     :value 6 :visible []}
+   {:face :prince   :value 5 :visible []}
+   {:face :countess :value 7 :visible []}
+   {:face :guard    :value 1 :visible []}
+   {:face :guard    :value 1 :visible []}
+   {:face :baron    :value 3 :visible []}
+   {:face :princess :value 8 :visible []}
+   {:face :priest   :value 2 :visible []}
+   {:face :guard    :value 1 :visible []}])
 
 (def test-game
   {:deck [{:face :priest   :value 2}
@@ -60,7 +77,7 @@
 
 (defn filter-fresh-deck [card-list]
   (reduce (fn [deck card]
-           (g/remove-first card deck)) (g/generate-deck) card-list))
+           (u/remove-first card deck)) complete-deck card-list))
 
 (defn high-card [game card]
   (let [{:keys [discard-pile current-player]} game
@@ -122,7 +139,7 @@
 (defn princess-suicide-probability [] -1)
 
 (defn get-other-card [card hand]
-  (peek (g/remove-first card hand)))
+  (peek (u/remove-first card hand)))
 
 (defn king-assist-probability [game target-player]
   (let [{:keys [current-player]} game
@@ -170,10 +187,6 @@
 
 (defn handmaid-defensive-probability [] 100)
 
-(defn valid-targets [game current-player]
-  (map :id (filter #(and (not= current-player (:id %))
-                (:alive? %)) (vals (:players game)))))
-
 (def card-faces
   #{:guard
     :priest
@@ -186,9 +199,9 @@
 
 (defn guard-prob-inputs [game]
   (let [current-player (:current-player game)
-        targets (valid-targets game current-player)
+        valid-targets (u/valid-targets game)
         faces   (remove #{:guard} card-faces)]
-    (for [t targets
+    (for [t valid-targets
           f faces]
       [t f])))
 

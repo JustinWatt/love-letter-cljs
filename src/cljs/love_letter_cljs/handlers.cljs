@@ -1,6 +1,7 @@
 (ns love-letter-cljs.handlers
     (:require [re-frame.core :refer [undoable dispatch register-handler]]
               [love-letter-cljs.db :as db]
+              [love-letter-cljs.utils :as u]
               [love-letter-cljs.game :as g]))
 
 (register-handler
@@ -117,7 +118,7 @@
         discarded-card (retrieve-card db face player-id)
         discard-pile (:discard-pile db)]
     (-> db
-        (assoc-in path (g/remove-first face (get-in db path)))
+        (assoc-in path (u/remove-first face (get-in db path)))
         (update-in [:discard-pile] conj discarded-card))))
 
 (register-handler
@@ -170,7 +171,6 @@
 
 (register-handler
  :toggle-debug-mode
- (undoable)
  (fn [db]
    (update db :debug-mode? not)))
 

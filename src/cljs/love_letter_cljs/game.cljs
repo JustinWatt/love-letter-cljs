@@ -1,5 +1,6 @@
 (ns love-letter-cljs.game
-  (:require [clojure.set :as set]))
+  (:require [clojure.set :as set]
+            [love-letter-cljs.utils :refer [find-card]]))
 
 (def cards [{:face :guard    :value 1 :count 5}
             {:face :priest   :value 2 :count 2}
@@ -9,10 +10,6 @@
             {:face :king     :value 6 :count 1}
             {:face :countess :value 7 :count 1}
             {:face :princess :value 8 :count 1}])
-
-(defn remove-first [face coll]
-  (let [[pre post] (split-with #(not= face (:face %)) coll)]
-    (vec (concat pre (rest post)))))
 
 (defn generate-card [card]
   (let [{:keys [count face value]} card]
@@ -64,11 +61,6 @@
         (update-in [:discard-pile] into (vec (take 1 cards)))
         (assoc-in source (vec (drop 1 cards))))))
 
-(defn find-card [game target]
-  (-> game
-      (get-in [:players target :hand])
-      peek))
-
 (defn create-and-deal []
   (-> (create-game)
       (burn-card)
@@ -109,7 +101,6 @@
     (-> game
         (assoc-in [:players target :hand] [(update-in player-card [:visible] conj player)])
         (assoc-in [:players player :hand] [(update-in target-card [:visible] conj target)]))))
-
 
 (defn prince-ability [game target]
   (let [target-card (find-card game target)]
@@ -156,20 +147,6 @@
        set
        (some #{:prince :king})
        ((complement nil?))))
-
-(defn- valid-target? [current-player player]
-  (and (not= current-player (:id player))
-       (and (not (:protected? player))
-            (:alive? player))))
-
-(defn valid-targets [game]
-  (let [current-player (:current-player game)]
-    (-> game
-        :players
-        vals
-        (->>
-         (filter (partial valid-target? current-player))
-         (map :id)))))
 
 (defn remove-protection [game]
   (assoc-in game [:players (:current-player game) :protected?] false))

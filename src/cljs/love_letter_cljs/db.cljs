@@ -44,7 +44,7 @@
     :active-card nil
     :guard-guess nil
     :card-target nil
-    :debug-mode? false
+    :debug-mode? true
     :log [{:from "System"
            :date (.toLocaleTimeString (js/Date.))
            :message "Welcome to the Game"}]}))
