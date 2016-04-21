@@ -149,8 +149,7 @@
 
 (register-handler
  :resolve-effect
- [(undoable)
- standard-middlewares]
+ [(undoable) standard-middlewares]
  (fn [db _]
    (let [active-card    (:active-card db)
          current-player (:current-player db)]
@@ -161,8 +160,7 @@
 
 (register-handler
  :discard-without-effect
- [(undoable)
- standard-middlewares]
+ [(undoable) standard-middlewares]
  (fn [db]
    (let [active-card    (:active-card db)
          current-player (:current-player db)]
@@ -175,7 +173,6 @@
  standard-middlewares
  (fn [db]
    (update db :debug-mode? not)))
-
 
 (register-handler
  :load-game

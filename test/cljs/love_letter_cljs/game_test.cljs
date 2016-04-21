@@ -30,7 +30,7 @@
    :current-player 1})
 
 (def test-game-b
-  {:deck '({:face :guard,    :value 1 :visible []}
+  {:deck [{:face :guard,    :value 1 :visible []}
            {:face :baron,    :value 3 :visible []}
            {:face :priest,   :value 2 :visible []}
            {:face :guard,    :value 1 :visible []}
@@ -41,7 +41,7 @@
            {:face :princess, :value 8 :visible []}
            {:face :baron,    :value 3 :visible []}
            {:face :prince,   :value 5 :visible []}
-           {:face :king,     :value 6 :visible []}),
+           {:face :king,     :value 6 :visible []}],
    :discard-pile [],
    :players {1 {:id 1, :hand [{:face :guard,  :value 1 :visible []}], :alive? true},
              2 {:id 2, :hand [{:face :priest, :value 2 :visible []}], :alive? true},
