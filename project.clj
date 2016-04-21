@@ -4,6 +4,7 @@
                  [reagent "0.6.0-alpha"]
                  [re-frame "0.7.0"]
                  [prismatic/schema "1.1.0"]
+                 [devcards "0.2.1-6"]
                  [org.clojure/core.match "0.3.0-alpha4"]]
 
   :min-lein-version "2.5.3"
@@ -35,6 +36,16 @@
                                    :output-to "resources/public/js/compiled/app.js"
                                    :output-dir "resources/public/js/compiled/out"
                                    :asset-path "js/compiled/out"
+                                   :source-map-timestamp true}}
+
+                       {:id "devcards"
+                        :source-paths ["src"]
+                        :figwheel {:css-dirs ["resources/public/css"]
+                                   :devcards true}
+                        :compiler {:main love-letter-cljs.cards
+                                   :output-to "resources/public/js/compiled/love_letter_cljs_devcards.js"
+                                   :output-dir "resources/public/js/compiled/devcards_out"
+                                   :asset-path "js/compiled/devcards_out"
                                    :source-map-timestamp true}}
 
                        {:id "test"
