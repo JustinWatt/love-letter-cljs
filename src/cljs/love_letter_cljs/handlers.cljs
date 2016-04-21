@@ -179,35 +179,3 @@
  standard-middlewares
  (fn [db [_ game]]
    (merge db game)))
-
-
-(def a
-  {:deck '({:face :prince :value 5 :visible []}
-          {:face :guard :value 1 :visible []}
-          {:face :baron :value 3 :visible []}
-          {:face :guard :value 1 :visible []}
-          {:face :king :value 6 :visible []})
-   :debug-mode? false
-   :display-card nil
-   :phase :resolution
-   :discard-pile [{:face :countess :value 7 :visible []}
-                  {:face :handmaid :value 4 :visible []}
-                  {:face :guard :value 1 :visible []}
-                  {:face :prince :value 5 :visible []}
-                  {:face :baron :value 3 :visible []}]
-
-   :burn-pile [{:face :handmaid :value 4 :visible []}]
-   :card-target 3
-   :guard-guess :priest
-   :active-card :priest
-   :players {1 {:id 1 :hand [{:face :princess :value 8 :visible []}
-                              {:face :priest :value 2 :visible []}]
-                :alive? true :protected? false}
-             2 {:id 2 :hand [{:face :guard :value 1 :visible []}]
-                :alive? true :protected? true}
-             3 {:id 3 :hand '({:face :priest :value 2 :visible []})
-                :alive? true :protected? false}
-             4 {:id 4 :hand [{:face :guard :value 1 :visible []}]
-                :alive? true :protected? false}}
-   :log []
-   :current-player 2})
