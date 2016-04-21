@@ -31,7 +31,8 @@
 
   :cljsbuild {:builds [{:id "dev"
                         :source-paths ["src/cljs"]
-                        :figwheel {:on-jsload "love-letter-cljs.core/mount-root"}
+                        :figwheel {:css-dirs ["resources/public/css"]
+                                   :on-jsload "love-letter-cljs.core/mount-root"}
                         :compiler {:main love-letter-cljs.core
                                    :output-to "resources/public/js/compiled/app.js"
                                    :output-dir "resources/public/js/compiled/out"

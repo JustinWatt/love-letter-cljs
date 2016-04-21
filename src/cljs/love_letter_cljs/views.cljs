@@ -116,9 +116,51 @@
     [:div
      [:button {:on-click #(dispatch [:undo]) :disabled (not @undos?)}(str "Undo " (count @undo-list))]
      [:button {:on-click #(dispatch [:redo]) :disabled (not @redos?)}(str "Redo " (count @redo-list) )]
-     [:button {:on-click #(dispatch [:purge-redos]) :disabled (not @redos?)} (str "Clear History")]
-     ]))
+     [:button {:on-click #(dispatch [:purge-redos]) :disabled (not @redos?)} (str "Clear History")]]))
 
+(defn render-card [index]
+  ^{:key (str index "deck-stack")}
+  [:img {:src (str "images/cardart/card-back-pixelated.png")
+         :style {:max-width "60px"
+                 :position "absolute"
+                 :bottom (str (* index .5) "px")
+                 :right (str (* index .5) "px")}}])
+
+(defn render-deck [cards]
+  (map #(render-card %) (range 1 (count cards))))
+
+(defn render-discard [index face]
+  ^{:key (str index face)}
+  [:img {:src (str "images/cardart/" (name face) ".png")
+         :style {:max-width "60px"
+                 :position "absolute"
+                 :left (str (* index 15) "px")
+                 :top (str (* index 10) "px")}}])
+
+(defn render-discard-pile [cards]
+  (map-indexed #(render-discard %1 %2) cards))
+
+(defn title-screen []
+  [:div.title-screen.flex-container {:style {:margin "auto"
+                                :width 704
+                                :height 480
+                                :background-color "black"}}
+   [:h1#title.text-center.flex-item "Love Letter"]
+   [:h4#start-button.text-center "Start"]
+   [:div#discard {:style {:height "90px"
+                       :width "200px"
+                       :position "absolute"
+                       :top "70%"
+                       :left "60%"}}
+    (render-discard-pile [:king :prince :guard :countess])]
+   [:div#deck {:style {:height "90px"
+                       :width "60px"
+                       :position "absolute"
+                       :top "80%"
+                       :left "40%"}}
+    (render-deck (range 1 17))]
+   #_[:img.pixelated {:style {:max-width "200px"}
+                    :src "images/cardart/king-pixelated.png"}]])
 
 (defn main-panel []
   (let [deck           (subscribe [:deck])
@@ -129,6 +171,8 @@
         db             (subscribe [:db])
         debug?         (subscribe [:debug-mode])]
     (fn []
+      #_[:div.flex-container
+       [title-screen]]
       [:div.container-fluid
        [:button {:on-click #(dispatch [:toggle-debug-mode])} "Debug Mode"]
        (if-not @debug?
