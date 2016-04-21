@@ -1,12 +1,13 @@
 (ns love-letter-cljs.handlers
-    (:require [re-frame.core :refer [after debug undoable dispatch register-handler]]
+    (:require [re-frame.core :refer [trim-v after debug undoable dispatch register-handler]]
               [love-letter-cljs.db :as db]
               [love-letter-cljs.utils :as u]
               [love-letter-cljs.game :as g]
               [cljs.core.match :refer-macros [match]]))
 
 (def standard-middlewares [(when ^boolean goog.DEBUG debug)
-                           (when ^boolean goog.DEBUG (after db/valid-schema?))]) 
+                           (when ^boolean goog.DEBUG (after db/valid-schema?))
+                           trim-v])
 
 (register-handler
  :initialize-db
@@ -38,7 +39,7 @@
 (defn set-phase [db phase]
   (assoc-in db [:phase] phase))
 
-(defn transition-phase [db from face]
+(defn- transition-phase [db from face]
   (match [from face]
     [:draw _]         (set-phase db :play)
     [:play :princess] (set-phase db :resolution)
@@ -50,39 +51,43 @@
     [:guard _]        (set-phase db :resolution)
     [:resolution _]   (set-phase db :draw)))
 
+(defn set-active-card-handler [db [face]]
+  (-> db
+      (assoc-in [:active-card] face)
+      (transition-phase :play face)))
+
 (register-handler
  :set-active-card
  [(undoable)
  standard-middlewares]
- (fn [db [_ face]]
-   (-> db
-       (assoc-in [:active-card] face)
-       (transition-phase :play face))))
+ set-active-card-handler)
+
+(defn set-target-handler [db [target-id]]
+  (let [active-card (:active-card db)]
+    (-> db
+        (assoc-in [:card-target] target-id)
+        (transition-phase :target active-card))))
 
 (register-handler
  :set-target
- [(undoable)
- standard-middlewares]
- (fn [db [_ target-id]]
-   (let [active-card (:active-card db)]
-     (-> db
-         (assoc-in [:card-target] target-id)
-         (transition-phase :target active-card)))))
+ [(undoable) standard-middlewares]
+ set-target-handler)
 
+(defn set-guard-guess-handler [db [face]]
+  (-> db
+       (assoc-in [:guard-guess] face)
+       (transition-phase :guard nil)))
 (register-handler
  :set-guard-guess
- [(undoable)
-       standard-middlewares]
- (fn [db [_ face]]
-   (-> db
-       (assoc-in [:guard-guess] face)
-       (transition-phase :guard _))))
+ [(undoable) standard-middlewares]
+ set-guard-guess-handler)
+
 
 ;; For cycling turns
 (defn next-in-list [item-list current]
   (as-> item-list i
-    (drop-while #(< current %) i)
-    (or (first (next i))
+    (filter #(> % current) i)
+    (or (first i)
         (first item-list))))
 
 (defn player-list [game]
@@ -127,9 +132,8 @@
 
 (register-handler
  :draw-card
- [(undoable)
- standard-middlewares]
- (fn [db [_ player-id]]
+ [(undoable) standard-middlewares]
+ (fn [db [player-id]]
    (handle-draw-card db player-id)))
 
 (defn resolve-effect [db]
@@ -137,13 +141,13 @@
         game db
         current-player (:current-player game)]
     (case active-card
-      :prince   (merge db (g/prince-ability   db card-target))
       :guard    (merge db (g/guard-ability    db guard-guess card-target))
-      :baron    (merge db (g/baron-ability    db current-player card-target))
-      :king     (merge db (g/king-ability     db current-player card-target))
-      :handmaid (merge db (g/handmaid-ability db current-player))
-      :countess db
       :priest   (merge db (g/reveal-card-to-player db current-player card-target))
+      :baron    (merge db (g/baron-ability    db current-player card-target))
+      :handmaid (merge db (g/handmaid-ability db current-player))
+      :prince   (merge db (g/prince-ability   db card-target))
+      :king     (merge db (g/king-ability     db current-player card-target))
+      :countess db
       :princess (merge db (g/kill-player db current-player))
       :default db)))
 
