@@ -134,11 +134,12 @@
     (is (= [1 3 4] (sut/player-list test-game-a)))))
 
 (deftest next-in-list-test
-  (testing "retrieves the next id in the list"
+  (testing "retrieves the next item in the list"
     (is (= 3 (sut/next-in-list [1 2 3 4] 2))))
-  (testing "retrieves the first item if current id is the last element"
+  (testing "retrieves the first item if current item is the last element"
     (is (= 1 (sut/next-in-list [1 2 3 4] 4))))
-  (testing "gets next greatest element if current element is missing"
+  (testing "gets next greatest item if current item is missing"
     (is (= 4 (sut/next-in-list [1 2 4] 3))))
   (testing "gets first element if current element is greatest and missing"
     (is (= 1 (sut/next-in-list [1 2 3] 4)))))
+
