@@ -3,6 +3,7 @@
               [love-letter-cljs.db :as db]
               [love-letter-cljs.utils :as u]
               [love-letter-cljs.game :as g]
+              [love-letter-cljs.ai :as ai]
               [cljs.core.match :refer-macros [match]]))
 
 (def standard-middlewares [(when ^boolean goog.DEBUG debug)
@@ -123,18 +124,16 @@
         (update-in [:discard-pile] conj discarded-card))))
 
 (defn handle-draw-card [db player-id]
-  (let [with-card-drawn (g/move-card db [:deck] [:players player-id :hand])]
-    #_(if (g/countess-check with-card-drawn player-id)
-      (-> with-card-drawn
-          (play-card :countess player-id)
-          (start-next-turn)))
-      (set-phase with-card-drawn :play)))
+  (-> db
+      (g/move-card [:deck] [:players player-id :hand])
+      (set-phase :play)))
 
 (register-handler
  :draw-card
  [(undoable) standard-middlewares]
  (fn [db [player-id]]
    (handle-draw-card db player-id)))
+
 
 (defn resolve-effect [db]
   (let [{:keys [card-target active-card guard-guess]} db
@@ -150,6 +149,29 @@
       :countess db
       :princess (merge db (g/kill-player db current-player))
       :default db)))
+
+
+(defn simulate-turn [db]
+  (let [{:keys [current-player]} db
+        with-card-drawn (handle-draw-card db current-player)
+        actions (ai/generate-actions with-card-drawn current-player)
+        action (:action (first actions))]
+    (if (not (empty? (u/valid-targets with-card-drawn)))
+      (-> with-card-drawn
+          (merge action)
+          (play-card (:active-card action) current-player)
+          (resolve-effect)
+          (start-next-turn))
+      (-> with-card-drawn
+          (merge action)
+          (play-card (:active-card action) current-player)
+          (start-next-turn)))))
+
+(register-handler
+ :simulate-turn
+ [(undoable) standard-middlewares]
+ simulate-turn)
+
 
 (register-handler
  :resolve-effect

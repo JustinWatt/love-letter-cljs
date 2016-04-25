@@ -28,7 +28,7 @@
    :current-player player-id
 
    :display-card (s/maybe card-face)
-   :phase        (s/enum :draw :play :guard :target :resolution)
+   :phase        (s/enum :draw :play :guard :target :resolution :complete)
    :active-card  (s/maybe card-face)
    :guard-guess  (s/maybe card-face)
    :card-target  (s/maybe player-id)
