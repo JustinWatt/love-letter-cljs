@@ -10,7 +10,7 @@
   (println "dev mode"))
 
 (defn mount-root []
-  (reagent/render [views/main-panel]
+  (reagent/render [views/main-screen]
                   (.getElementById js/document "app")))
 
 (defn ^:export init []

@@ -48,6 +48,11 @@
      (reaction (get-in @db [:players @current-player])))))
 
 (register-sub
+ :player-info
+ (fn [db [_ player-id]]
+   (reaction (get-in @db [:players player-id]))))
+
+(register-sub
  :current-phase
  (fn [db]
    (reaction (@db :phase))))
@@ -66,3 +71,8 @@
  :log
  (fn [db]
    (reaction (:log @db))))
+
+(register-sub
+ :active-screen
+ (fn [db]
+   (reaction (:active-screen @db))))

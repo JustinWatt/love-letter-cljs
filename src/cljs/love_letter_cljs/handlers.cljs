@@ -15,6 +15,13 @@
  (fn  [_ _]
    db/default-db))
 
+(register-handler
+ :set-active-screen
+ standard-middlewares
+ (fn [db [screen-key]]
+   (assoc db :active-screen screen-key)))
+
+
 (defn reset-state [db]
   (merge db {:display-card nil
              :phase :draw
@@ -151,12 +158,13 @@
       :default db)))
 
 
+
 (defn simulate-turn [db]
   (let [{:keys [current-player]} db
         with-card-drawn (handle-draw-card db current-player)
         actions (ai/generate-actions with-card-drawn current-player)
-        action (:action (first actions))]
-    (if (not (empty? (u/valid-targets with-card-drawn)))
+        action (:action (ai/pick-action actions))]
+    (if (seq (u/valid-targets with-card-drawn))
       (-> with-card-drawn
           (merge action)
           (play-card (:active-card action) current-player)

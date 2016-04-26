@@ -21,7 +21,8 @@
              :protected? s/Bool})
 
 (def app-schema
-  {:deck         card-pile
+  {:active-screen (s/enum :title-screen :main-screen :debug-screen :game-screen)
+   :deck         card-pile
    :discard-pile card-pile
    :burn-pile    card-pile
    :players      {s/Int player}
@@ -38,7 +39,8 @@
 (def default-db
   (merge
    (create-and-deal)
-   {:display-card nil
+   {:active-screen :title-screen
+    :display-card nil
     :phase :draw
     :active-card nil
     :guard-guess nil
