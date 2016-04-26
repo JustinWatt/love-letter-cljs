@@ -76,10 +76,9 @@
 (defn player-hand [game id]
   (get-in game [:players id :hand]))
 
-
 (defn filter-fresh-deck [card-list]
   (reduce (fn [deck card]
-           (u/remove-first card deck)) complete-deck card-list))
+            (u/remove-first card deck)) complete-deck card-list))
 
 (defn high-card [game card]
   (let [{:keys [discard-pile current-player]} game
@@ -167,8 +166,7 @@
         :countess   0
         :default    0))))
 
-
-(defn contains-attack-card? [hand]
+(defn- contains-attack-card? [hand]
   (let [faces (set (map :face hand))]
     (some faces [:baron :guard :prince])))
 
@@ -294,6 +292,7 @@
 (defn generate-card-actions [game card]
   (let [high-card-action (generate-high-card-action game card)
         targets (u/valid-targets game)]
+    (cons high-card-action
           (case (:face card)
             :guard  (map #(guard-elimination-action game %) (guard-prob-inputs game))
             :priest (map #(priest-assist-action game %) targets)
@@ -304,26 +303,88 @@
             :king     (map #(king-assist-action game %) targets)
             :countess [(countess-bluff-action game)]
             :princess [(princess-suicide-action game)]
-            :default [])))
+            :default  []))))
+
+(defn normalize-hand [hand]
+  (vec (set (map #(select-keys % [:face :value]) hand))))
 
 (defn generate-actions [game player-id]
-  (->> (mapcat #(generate-card-actions game %) (player-hand game player-id))
+  (->> (mapcat #(generate-card-actions game %) (normalize-hand (player-hand game player-id)))
        (sort-by :strength)
        reverse))
 
+(defn other-card-actions [best-action actions]
+  (filter #(and (not= (:type %) :high-card)
+                (not= (:active-card (:action %))
+                      (:active-card (:action best-action)))) actions))
+
+(defn other-card-face [best-action actions]
+  (:active-card (:action (first (filter #(not= (:active-card (:action best-action)) (:active-card (:action %))) actions)))))
+
+(defn same-card-actions [best-action actions]
+  (filter #(and (not= (:type %) :high-card)
+                (= (:active-card (:action %))
+                   (:active-card (:action best-action)))) actions))
+
+(defn no-op-action [face current-player]
+  {:action {:active-card face
+            :card-target nil
+            :current-player current-player
+            :guard-guess nil}})
+
 (defn pick-action [actions]
-  (let [best-action (first actions)]
+  (let [best-action   (first actions)]
     (if (not= :high-card (:type best-action))
       best-action
-      (first (drop-while #(or (= (:type %) :high-card)
-                              (= (:active-card (:action %)) (:active-card (:action best-action))))
-                         actions)))))
+      (let [other-actions (other-card-actions best-action actions)
+            other-face    (other-card-face best-action actions)
+            same-actions  (same-card-actions best-action actions)]
+        (if (nil? other-face)
+          (if (empty? same-actions)
+            (no-op-action (:active-card (:action best-action)) (:current-player (:action best-action)))
+            (first same-actions))
+          (if (empty? other-actions)
+            (no-op-action other-face (:current-player (:action best-action)))
+            (first other-actions)))))))
 
-#_[{:action {:target nil
-             :guard-guess nil
-             :active-card nil
-             :current-player nil}
-    :type :defense
-    :strength 100}]
 
+(def no-op-test
+  {:deck
+   [{:face :princess, :value 8, :visible []}
+    {:face :prince, :value 5, :visible []}
+    {:face :priest, :value 2, :visible []}
+    {:face :guard, :value 1, :visible []}
+    {:face :handmaid, :value 4, :visible []}],
+   :debug-mode? true,
+   :display-card nil,
+   :phase :draw,
+   :discard-pile
+   [{:face :guard, :value 1, :visible []}
+    {:face :king, :value 6, :visible []}
+    {:face :priest, :value 2, :visible []}
+    {:face :baron, :value 3, :visible []}
+    {:face :guard, :value 1, :visible [3]}
+    {:face :prince, :value 5, :visible []}
+    {:face :baron, :value 3, :visible []}
+    {:face :handmaid, :value 4, :visible []}],
+   :burn-pile [{:face :guard, :value 1, :visible []}],
+   :card-target nil,
+   :guard-guess nil,
+   :active-card :handmaid,
+   :players
+   {1 {:id 1, :hand [], :alive? false, :protected? false},
+    2 {:id 2, :hand [], :alive? false, :protected? false},
+    3
+    {:id 3,
+     :hand [{:face :guard, :value 1, :visible []}],
+     :alive? true,
+     :protected? false},
+    4
+    {:id 4,
+     :hand [{:face :countess, :value 7, :visible []}],
+     :alive? true,
+     :protected? true}},
+   :log [],
+   :current-player 3}
+  )
 
