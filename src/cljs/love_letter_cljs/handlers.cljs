@@ -1,16 +1,26 @@
 (ns love-letter-cljs.handlers
-    (:require [re-frame.core :refer [after debug undoable dispatch register-handler]]
+    (:require [re-frame.core :refer [trim-v after debug undoable dispatch register-handler]]
               [love-letter-cljs.db :as db]
               [love-letter-cljs.utils :as u]
-              [love-letter-cljs.game :as g]))
+              [love-letter-cljs.game :as g]
+              [love-letter-cljs.ai :as ai]
+              [cljs.core.match :refer-macros [match]]))
 
 (def standard-middlewares [(when ^boolean goog.DEBUG debug)
-                           (when ^boolean goog.DEBUG (after db/valid-schema?))]) 
+                           (when ^boolean goog.DEBUG (after db/valid-schema?))
+                           trim-v])
 
 (register-handler
  :initialize-db
  (fn  [_ _]
    db/default-db))
+
+(register-handler
+ :set-active-screen
+ standard-middlewares
+ (fn [db [screen-key]]
+   (assoc db :active-screen screen-key)))
+
 
 (defn reset-state [db]
   (merge db {:display-card nil
@@ -37,58 +47,55 @@
 (defn set-phase [db phase]
   (assoc-in db [:phase] phase))
 
-(register-handler
- :set-phase
- [(undoable)
-       standard-middlewares]
- (fn [db [_ phase]]
-   (set-phase db phase)))
+(defn- transition-phase [db from face]
+  (match [from face]
+    [:draw _]         (set-phase db :play)
+    [:play :princess] (set-phase db :resolution)
+    [:play :handmaid] (set-phase db :resolution)
+    [:play :countess] (set-phase db :resolution)
+    [:play _]         (set-phase db :target)
+    [:target :guard]  (set-phase db :guard)
+    [:target _]       (set-phase db :resolution)
+    [:guard _]        (set-phase db :resolution)
+    [:resolution _]   (set-phase db :draw)))
 
-(defn transition-from-play-phase [db face]
-  (case face
-    :princess (set-phase db :resolution)
-    :handmaid (set-phase db :resolution)
-    :countess (set-phase db :resolution)
-    (set-phase db :target)))
+(defn set-active-card-handler [db [face]]
+  (-> db
+      (assoc-in [:active-card] face)
+      (transition-phase :play face)))
 
 (register-handler
  :set-active-card
  [(undoable)
  standard-middlewares]
- (fn [db [_ face]]
-   (-> db
-       (assoc-in [:active-card] face)
-       (transition-from-play-phase face))))
+ set-active-card-handler)
 
-(defn transition-from-target-phase [db face]
-  (if (= :guard face)
-    (set-phase db :guard)
-    (set-phase db :resolution)))
+(defn set-target-handler [db [target-id]]
+  (let [active-card (:active-card db)]
+    (-> db
+        (assoc-in [:card-target] target-id)
+        (transition-phase :target active-card))))
 
 (register-handler
  :set-target
- [(undoable)
- standard-middlewares]
- (fn [db [_ target-id]]
-   (let [active-card (:active-card db)]
-     (-> db
-         (assoc-in [:card-target] target-id)
-         (transition-from-target-phase active-card)))))
+ [(undoable) standard-middlewares]
+ set-target-handler)
 
+(defn set-guard-guess-handler [db [face]]
+  (-> db
+       (assoc-in [:guard-guess] face)
+       (transition-phase :guard nil)))
 (register-handler
  :set-guard-guess
- [(undoable)
-       standard-middlewares]
- (fn [db [_ face]]
-   (-> db
-       (assoc-in [:guard-guess] face)
-       (set-phase :resolution))))
+ [(undoable) standard-middlewares]
+ set-guard-guess-handler)
+
 
 ;; For cycling turns
 (defn next-in-list [item-list current]
   (as-> item-list i
-    (drop-while #(not= current %) i)
-    (or (first (next i))
+    (filter #(> % current) i)
+    (or (first i)
         (first item-list))))
 
 (defn player-list [game]
@@ -109,13 +116,6 @@
           (assoc-in [:players next-player :protected?] false)
           (set-phase :draw)))))
 
-(register-handler
- :next-player
- [(undoable)
- standard-middlewares]
- (fn [db _]
-   (start-next-turn db)))
-
 (defn retrieve-card [db face current-player]
   (let [path [:players current-player :hand]]
     (->> (get-in db path)
@@ -131,39 +131,59 @@
         (update-in [:discard-pile] conj discarded-card))))
 
 (defn handle-draw-card [db player-id]
-  (let [with-card-drawn (g/move-card db [:deck] [:players player-id :hand])]
-    #_(if (g/countess-check with-card-drawn player-id)
-      (-> with-card-drawn
-          (play-card :countess player-id)
-          (start-next-turn)))
-      (set-phase with-card-drawn :play)))
+  (-> db
+      (g/move-card [:deck] [:players player-id :hand])
+      (set-phase :play)))
 
 (register-handler
  :draw-card
- [(undoable)
- standard-middlewares]
- (fn [db [_ player-id]]
+ [(undoable) standard-middlewares]
+ (fn [db [player-id]]
    (handle-draw-card db player-id)))
+
 
 (defn resolve-effect [db]
   (let [{:keys [card-target active-card guard-guess]} db
         game db
         current-player (:current-player game)]
     (case active-card
-      :prince   (merge db (g/prince-ability   db card-target))
       :guard    (merge db (g/guard-ability    db guard-guess card-target))
-      :baron    (merge db (g/baron-ability    db current-player card-target))
-      :king     (merge db (g/king-ability     db current-player card-target))
-      :handmaid (merge db (g/handmaid-ability db current-player))
-      :countess db
       :priest   (merge db (g/reveal-card-to-player db current-player card-target))
+      :baron    (merge db (g/baron-ability    db current-player card-target))
+      :handmaid (merge db (g/handmaid-ability db current-player))
+      :prince   (merge db (g/prince-ability   db card-target))
+      :king     (merge db (g/king-ability     db current-player card-target))
+      :countess db
       :princess (merge db (g/kill-player db current-player))
       :default db)))
 
+
+
+(defn simulate-turn [db]
+  (let [{:keys [current-player]} db
+        with-card-drawn (handle-draw-card db current-player)
+        actions (ai/generate-actions with-card-drawn current-player)
+        action (:action (ai/pick-action actions))]
+    (if (seq (u/valid-targets with-card-drawn))
+      (-> with-card-drawn
+          (merge action)
+          (play-card (:active-card action) current-player)
+          (resolve-effect)
+          (start-next-turn))
+      (-> with-card-drawn
+          (merge action)
+          (play-card (:active-card action) current-player)
+          (start-next-turn)))))
+
+(register-handler
+ :simulate-turn
+ [(undoable) standard-middlewares]
+ simulate-turn)
+
+
 (register-handler
  :resolve-effect
- [(undoable)
- standard-middlewares]
+ [(undoable) standard-middlewares]
  (fn [db _]
    (let [active-card    (:active-card db)
          current-player (:current-player db)]
@@ -174,8 +194,7 @@
 
 (register-handler
  :discard-without-effect
- [(undoable)
- standard-middlewares]
+ [(undoable) standard-middlewares]
  (fn [db]
    (let [active-card    (:active-card db)
          current-player (:current-player db)]
@@ -189,41 +208,8 @@
  (fn [db]
    (update db :debug-mode? not)))
 
-
 (register-handler
  :load-game
  standard-middlewares
  (fn [db [_ game]]
    (merge db game)))
-
-
-(def a
-  {:deck '({:face :prince :value 5 :visible []}
-          {:face :guard :value 1 :visible []}
-          {:face :baron :value 3 :visible []}
-          {:face :guard :value 1 :visible []}
-          {:face :king :value 6 :visible []})
-   :debug-mode? false
-   :display-card nil
-   :phase :resolution
-   :discard-pile [{:face :countess :value 7 :visible []}
-                  {:face :handmaid :value 4 :visible []}
-                  {:face :guard :value 1 :visible []}
-                  {:face :prince :value 5 :visible []}
-                  {:face :baron :value 3 :visible []}]
-
-   :burn-pile [{:face :handmaid :value 4 :visible []}]
-   :card-target 3
-   :guard-guess :priest
-   :active-card :priest
-   :players {1 {:id 1 :hand [{:face :princess :value 8 :visible []}
-                              {:face :priest :value 2 :visible []}]
-                :alive? true :protected? false}
-             2 {:id 2 :hand [{:face :guard :value 1 :visible []}]
-                :alive? true :protected? true}
-             3 {:id 3 :hand '({:face :priest :value 2 :visible []})
-                :alive? true :protected? false}
-             4 {:id 4 :hand [{:face :guard :value 1 :visible []}]
-                :alive? true :protected? false}}
-   :log []
-   :current-player 2})

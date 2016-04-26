@@ -1,2 +1,66 @@
-li {
+.flex-container {
+    display: -webkit-box;      /* OLD - iOS 6-, Safari 3.1-6 */
+    display: -moz-box;         /* OLD - Firefox 19- (buggy but mostly works) */
+    display: -webkit-flex;     /* NEW - Chrome */
+    display: flex;             /* NEW, Spec - Opera 12.1, Firefox 20+ */
+    -webkit-box-flex-direction: row;
+    -moz-box-flex-direction: row;
+    -webkit-flex-direction: row;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.flex-item {
+    margin: auto;
+}
+
+#start-button {
+    position: relative;
+    bottom: 30%;
+}
+
+.title-screen > h1 {
+    font-family: 'Press Start 2P', cursive;
+    color: white;
+}
+
+
+.pixelated {
+  -ms-interpolation-mode: nearest-neighbor; // IE 7+ (non-standard property)
+  image-rendering: -webkit-optimize-contrast; // Safari 6, UC Browser 9.9
+  image-rendering: -webkit-crisp-edges; // Safari 7+
+  image-rendering: -moz-crisp-edges; // Firefox 3.6+
+  image-rendering: -o-crisp-edges; // Opera 12
+  image-rendering: pixelated; // Chrome 41+ and Opera 26+
+}
+
+#deck {
+    -webkit-transition:  border-width .2s, border-height .2s, border-color 2s;
+    transition: border-width 2s, border-height 2s, border-color 2s, box-shadow 2s;
+}
+
+#deck:hover {
+box-shadow:
+        0 0 5px 2px #fff,  /* inner white */
+        0 0 10px 5px #f0f, /* middle magenta */
+        0 0 20px 10px #0ff; /* outer cyan */
+}
+
+.text-center {
+    text-align: center;
+}
+
+.discarded-card {
+    transition: all .4s ease-in-out;
+}
+
+.discarded-card:hover {
+    transform: scale(2.5);
+    z-index: 2
 }
