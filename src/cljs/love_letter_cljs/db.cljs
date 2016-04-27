@@ -1,11 +1,15 @@
 (ns love-letter-cljs.db
   (:require [love-letter-cljs.game :refer [create-and-deal]]
             [schema.core :as s
-             :include-macros true]))
+             :include-macros true]
+            [love-letter-cljs.ai :as ai]))
 
 (def card-face
   (s/enum :guard  :priest :baron    :handmaid
           :prince :king   :countess :princess))
+
+(def ai-profile
+  (s/enum :aggressive :defensive :base))
 
 (def player-id s/Int)
 
@@ -18,7 +22,8 @@
 (def player {:id     s/Int
              :hand   card-pile
              :alive? s/Bool
-             :protected? s/Bool})
+             :protected? s/Bool
+             :personality ai-profile})
 
 (def app-schema
   {:active-screen (s/enum :title-screen :main-screen :debug-screen :game-screen)
@@ -49,24 +54,6 @@
     :log [{:from "System"
            :time (.toLocaleTimeString (js/Date.))
            :message "Welcome to the Game"}]}))
-
-(def action-types
-  {:guard    [:high-card :eliminate :survive]
-   :priest   [:high-card :assist]
-   :baron    [:high-card :eliminate :survive]
-   :handmaid [:high-card :defense]
-   :prince   [:high-card :eliminate]
-   :king     [:high-card :assist]
-   :countess [:high-card :assist]
-   :princess [:high-card :suicide]})
-
-(def action
-  {:card          :guard
-   :value         1
-   :action-type   :eliminate
-   :target-player 2
-   :target-card   :baron
-   :action-score  30})
 
 (defn valid-schema?
   "validate the given db, writing any problems to console.error"

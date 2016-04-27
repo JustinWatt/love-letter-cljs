@@ -18,14 +18,18 @@
 (defn generate-deck []
   (-> (mapcat generate-card cards) shuffle vec))
 
-(defn create-player [n]
+(defn create-player [n personality]
   {:id n
    :hand []
    :alive? true
-   :protected? false})
+   :protected? false
+   :personality personality})
+
+(def personalities
+  [:aggressive :base :defensive])
 
 (defn create-players [n]
-  (mapv create-player (range 1 (inc n))))
+  (mapv #(create-player %1 (rand-nth personalities)) (range 1 (inc n))))
 
 (defn add-players [n]
   (reduce

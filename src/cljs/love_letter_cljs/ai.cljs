@@ -48,21 +48,26 @@
                 :hand [{:face :king  :value 6 :visible []}
                        {:face :baron :value 3 :visible []}]
                 :alive? true
-                :protected? false}
+                :protected? false
+                :personality :base}
 
              2 {:id 2
                 :hand [{:face :guard :value 1 :visible [1]}]
                 :alive? true
-                :protected? false}
+                :protected? false
+                :personality :aggressive}
 
              3 {:id 3
                 :hand [{:face :princess :value 8 :visible []}]
                 :alive? true
-                :protected? false}
+                :protected? false
+                :personality :aggressive}
 
              4 {:id 4
                 :hand [{:face :guard :value 1 :visible []}]
-                :alive? true :protected? true}}
+                :alive? true
+                :protected? true
+                :personality :defensive}}
 
    :current-player 1})
 
@@ -308,10 +313,41 @@
 (defn normalize-hand [hand]
   (vec (set (map #(select-keys % [:face :value]) hand))))
 
+(def personality-profiles
+  {:aggressive {:eliminate .80
+                :assist    .70
+                :high-card .40
+                :defensive .40
+                :survive   .25
+                :bluff     .15
+                :suicide  1}
+
+   :defensive  {:eliminate .40
+                :assist    .25
+                :high-card .40
+                :defensive .80
+                :survive   .80
+                :bluff     .15
+                :suicide  1}
+
+   :base       {:eliminate 1
+                :assist    1
+                :high-card 1
+                :defensive 1
+                :survive   1
+                :bluff     1
+                :suicide   1}})
+
+(defn apply-personality [personality action]
+  (let [type (:type action)]
+    (update action :strength * (type (personality personality-profiles)))))
+
 (defn generate-actions [game player-id]
-  (->> (mapcat #(generate-card-actions game %) (normalize-hand (player-hand game player-id)))
-       (sort-by :strength)
-       reverse))
+  (let [personality (get-in game [:players player-id :personality])]
+    (->> (mapcat #(generate-card-actions game %) (normalize-hand (player-hand game player-id)))
+         (map #(apply-personality personality %))
+         (sort-by :strength)
+         reverse)))
 
 (defn other-card-actions [best-action actions]
   (filter #(and (not= (:type %) :high-card)
@@ -338,53 +374,13 @@
       best-action
       (let [other-actions (other-card-actions best-action actions)
             other-face    (other-card-face best-action actions)
-            same-actions  (same-card-actions best-action actions)]
+            same-actions  (same-card-actions best-action actions)
+            {:keys [active-card current-player]} (:action best-action)]
         (if (nil? other-face)
           (if (empty? same-actions)
-            (no-op-action (:active-card (:action best-action)) (:current-player (:action best-action)))
+            (no-op-action active-card current-player)
             (first same-actions))
           (if (empty? other-actions)
-            (no-op-action other-face (:current-player (:action best-action)))
+            (no-op-action other-face current-player)
             (first other-actions)))))))
-
-
-(def no-op-test
-  {:deck
-   [{:face :princess, :value 8, :visible []}
-    {:face :prince, :value 5, :visible []}
-    {:face :priest, :value 2, :visible []}
-    {:face :guard, :value 1, :visible []}
-    {:face :handmaid, :value 4, :visible []}],
-   :debug-mode? true,
-   :display-card nil,
-   :phase :draw,
-   :discard-pile
-   [{:face :guard, :value 1, :visible []}
-    {:face :king, :value 6, :visible []}
-    {:face :priest, :value 2, :visible []}
-    {:face :baron, :value 3, :visible []}
-    {:face :guard, :value 1, :visible [3]}
-    {:face :prince, :value 5, :visible []}
-    {:face :baron, :value 3, :visible []}
-    {:face :handmaid, :value 4, :visible []}],
-   :burn-pile [{:face :guard, :value 1, :visible []}],
-   :card-target nil,
-   :guard-guess nil,
-   :active-card :handmaid,
-   :players
-   {1 {:id 1, :hand [], :alive? false, :protected? false},
-    2 {:id 2, :hand [], :alive? false, :protected? false},
-    3
-    {:id 3,
-     :hand [{:face :guard, :value 1, :visible []}],
-     :alive? true,
-     :protected? false},
-    4
-    {:id 4,
-     :hand [{:face :countess, :value 7, :visible []}],
-     :alive? true,
-     :protected? true}},
-   :log [],
-   :current-player 3}
-  )
 
