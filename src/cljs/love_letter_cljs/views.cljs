@@ -199,28 +199,12 @@
            [:div.col-md-4.col-sm-4.col-xs-4
             [card-display]]]]])))
 
-(defn- card-spread [cards]
-  (map-indexed
-   (fn [i c]
-     ^{:key (str i (:face c))}
-     [:div.discarded-card
-      {:style {:position "absolute"
-               :left (str (* 30 i) "px")
-               :width "65px"
-               :height "85px"
-               :border-radius "5px"
-               :border-color "black"
-               :border-style "solid"
-               :background-size "contain"
-               :background-image (str "url(images/cardart/" (name (:face c)) ".png)")
-               :border-width "2px"}}]) cards))
-
 (defn discard-pile [cards]
   [:div
    [:div {:style {:position "relative"
                   :height "120px"
                   :width  "425px"
-                  :background-color "darkgray"}}
+                  :background-color "black"}}
     (map-indexed (fn [i c]
                    ^{:key (str i (:face c))}
                    [:div.discarded-card
@@ -234,6 +218,8 @@
                              :background-size "contain"
                              :background-image (str "url(images/cardart/" (name (:face c)) ".png)")
                              :border-width "2px"}}]) cards)]])
+
+
 
 (defn player-one-area [player-info phase active-player?]
   (let [player-info (subscribe [:player-info 1])
@@ -306,8 +292,41 @@
              {:on-click #(dispatch [:set-guard-guess guess])}
              (s/capitalize (name guess))]) card-faces)]))))
 
-(defn button [label on-click]
-  [:button {:on-click on-click} label])
+(def face->symbol
+  {:guard "G"
+   :priest "Pst"
+   :baron "B"
+   :handmaid "H"
+   :prince "Prnc"
+   :king   "K"
+   :countess "C"
+   :princess "P"})
+
+(defn in?
+  [coll element]
+  (some #(= element %) coll))
+
+(defn hand->symbols [hand]
+  (s/join
+   (reduce
+    (fn [string card]
+      (if (in? (:visible card) 1)
+        (concat string (face->symbol (:face card)))
+        string)) "" hand)))
+
+(defn player-display [current-player players]
+  [:ul {:style {:list-style "none"
+                :font-size "1em"}}
+   (map-indexed
+    (fn [i p]
+      (let [{:keys [id hand alive? protected?]} p]
+        ^{:key (str "player" i "display")}
+        [:li {:style {:text-decoration (if alive? "" "line-through")
+                      :color (if (= current-player id) "steelblue" "white")}}
+         (str (when protected? (js/String.fromCharCode 9730))
+              " Player " id " "
+              (hand->symbols hand))])) players)])
+
 
 (defn game-screen []
   (let [deck              (subscribe [:deck])
@@ -332,6 +351,10 @@
 
        [:div#discard-pile {:style {:position "absolute" :left "35%" :bottom "60%"}}
         [discard-pile @discarded-cards]]
+
+       [:div#player-display {:style {:position "absolute" :left "80%" :top "20%"}}
+        [player-display @current-player-id @players]
+        ]
 
        [:div#player-controls
         [:div (menu-box-style "0%")
@@ -371,10 +394,10 @@
         (reverse (sort-by :value scores)))]]))
 
 (defn win-screen []
-  (let [score (subscribe [:score-game])]
+  (let [scores (subscribe [:score-game])]
     (fn []
       [:div.flex-item {:margin-bottom 200}
-       [:div (parse-winner @score)]
+       [:div (parse-winner @scores)]
        [:button
         {:style {:position "absolute" :left "45%" :bottom "30%"}
          :on-click #(do (dispatch [:new-game]) (dispatch [:set-active-screen :game-screen]))} "New Game"]
