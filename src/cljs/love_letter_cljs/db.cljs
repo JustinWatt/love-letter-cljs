@@ -26,7 +26,7 @@
              :personality ai-profile})
 
 (def app-schema
-  {:active-screen (s/enum :title-screen :main-screen :debug-screen :game-screen)
+  {:active-screen (s/enum :title-screen :main-screen :debug-screen :game-screen :win-screen)
    :deck         card-pile
    :discard-pile card-pile
    :burn-pile    card-pile

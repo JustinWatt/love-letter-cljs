@@ -1,6 +1,7 @@
 (ns love-letter-cljs.subs
     (:require-macros [reagent.ratom :refer [reaction]])
-    (:require [re-frame.core :refer [register-sub subscribe]]
+    (:require [cljs.core.match :refer-macros [match]]
+              [re-frame.core :refer [register-sub subscribe]]
               [love-letter-cljs.utils :refer [valid-targets]]))
 
 (register-sub
@@ -76,3 +77,72 @@
  :active-screen
  (fn [db]
    (reaction (:active-screen @db))))
+
+(defn resolvable? [face card-target? guard-guess?]
+  (match [face card-target? guard-guess?]
+    [:guard  true true] true
+    [:priest true _] true
+    [:baron  true _] true
+    [:handmaid _  _] true
+    [:prince true _] true
+    [:king   true _] true
+    [:countess  _ _] true
+    [:king   true _] true
+    [:princess _  _] true
+    :else false))
+
+(def not-nil? (complement nil?))
+
+
+(defn display-guard-guess? [face target]
+  (and (= face :guard)
+       (not= nil target)))
+
+(defn display-target? [face]
+  (case face
+    :princess false
+    :countess false
+    :handmaid false
+    nil       false
+    true))
+
+(register-sub
+ :display-target?
+ (fn [db]
+   (reaction
+    (let [{:keys [active-card]} @db]
+      (display-target? active-card)))))
+
+
+(register-sub
+ :display-guard-guess?
+ (fn [db]
+   (reaction
+    (let [{:keys [active-card card-target]} @db]
+      (display-guard-guess? active-card card-target)))))
+
+(register-sub
+ :resolvable?
+ (fn [db]
+   (reaction
+    (let [{:keys [active-card card-target guard-guess]} @db]
+      (resolvable? active-card (not-nil? card-target) (not-nil? guard-guess))))))
+
+(defn score-hand [player]
+  (let [hand (player :hand)]
+    (merge
+     (select-keys player [:id])
+     (select-keys (peek hand) [:face :value]))))
+
+(defn score-game [game]
+  (-> game
+      :players
+      vals
+      (->>
+       (filter :alive?)
+       (mapv score-hand))))
+
+(register-sub
+ :score-game
+ (fn [db]
+   (reaction (score-game @db))))
