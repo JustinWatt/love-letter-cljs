@@ -327,6 +327,16 @@
               " Player " id " "
               (hand->symbols hand))])) players)])
 
+(defn game-log []
+  (let [log (subscribe [:log])]
+    (fn []
+      [:ul {:style {:list-style "none"
+                    :font-size "1em"}}
+       (map-indexed
+        (fn [i m]
+          ^{:key (str i "message")}
+          [:li m]) (take-last 5 @log))])))
+
 
 (defn game-screen []
   (let [deck              (subscribe [:deck])
@@ -353,8 +363,13 @@
         [discard-pile @discarded-cards]]
 
        [:div#player-display {:style {:position "absolute" :left "80%" :top "20%"}}
-        [player-display @current-player-id @players]
-        ]
+        [player-display @current-player-id @players]]
+
+       [:div#player-display {:style {:position "absolute" :left "30%" :top "60%"}}
+        [:h6.text-center "Message Log"]
+        [game-log]]
+
+
 
        [:div#player-controls
         [:div (menu-box-style "0%")

@@ -39,7 +39,7 @@
    :guard-guess  (s/maybe card-face)
    :card-target  (s/maybe player-id)
    :debug-mode?   s/Bool
-   :log          (s/maybe [(s/maybe {:from s/Str :time s/Str :message s/Str})])})
+   :log          (s/maybe [s/Str])})
 
 (def default-db
   (merge
@@ -51,9 +51,7 @@
     :guard-guess nil
     :card-target nil
     :debug-mode? true
-    :log [{:from "System"
-           :time (.toLocaleTimeString (js/Date.))
-           :message "Welcome to the Game"}]}))
+    :log []}))
 
 (defn valid-schema?
   "validate the given db, writing any problems to console.error"

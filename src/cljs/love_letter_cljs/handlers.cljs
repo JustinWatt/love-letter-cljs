@@ -1,10 +1,11 @@
 (ns love-letter-cljs.handlers
-    (:require [re-frame.core :refer [trim-v after debug undoable dispatch register-handler]]
-              [love-letter-cljs.db :as db]
-              [love-letter-cljs.utils :as u]
-              [love-letter-cljs.game :as g]
-              [love-letter-cljs.ai :as ai]
-              [cljs.core.match :refer-macros [match]]))
+  (:require [re-frame.core :refer [trim-v after debug undoable dispatch register-handler]]
+            [love-letter-cljs.db :as db]
+            [love-letter-cljs.utils :as u]
+            [love-letter-cljs.game :as g]
+            [love-letter-cljs.ai :as ai]
+            [cljs.core.match :refer-macros [match]]
+            [clojure.string :as s]))
 
 (def standard-middleware [(when ^boolean goog.DEBUG debug)
                            (when ^boolean goog.DEBUG (after db/valid-schema?))
@@ -149,6 +150,18 @@
    (handle-draw-card db player-id)))
 
 
+(defn action->message [player-id active-card target guard-guess]
+  (case active-card
+    :guard (str "Player " player-id " guesses Player " target " has a " (s/capitalize (name guard-guess)))
+    :priest (str "Player " player-id " uses the Priest to peek at Player " target "'s hand")
+    :baron (str "Player " player-id " uses the Baron to compare cards with Player " target)
+    :handmaid (str "Player " player-id " uses the Handmaid to protect themselves")
+    :prince (str "Player " player-id " uses the Prince to force Player " target " to discard their card")
+    :king  (str "Player " player-id " uses the King to trade hands with Player " target)
+    :countess (str "Player " player-id " discards the Countess")
+    :princess (str "Player " player-id " loses by discarding the Princess")
+    :default "error"))
+
 (defn resolve-effect [db]
   (let [{:keys [card-target active-card guard-guess]} db
         current-player (:current-player db)]
@@ -163,6 +176,13 @@
       :princess (merge db (g/kill-player db current-player))
       :default db)))
 
+(defn append-to-log [game]
+  (let [{:keys [active-card current-player guard-guess card-target]} game]
+    (update game :log conj (action->message current-player active-card card-target guard-guess))))
+
+(defn no-op-message [game active-card]
+  (update game :log conj (str (:current-player game) " plays the " (s/capitalize (name active-card)) " with no effect")))
+
 (defn simulate-turn [db]
   (let [{:keys [current-player]} db
         with-card-drawn (handle-draw-card db current-player)
@@ -172,11 +192,13 @@
       (-> with-card-drawn
           (merge action)
           (play-card (:active-card action) current-player)
+          (append-to-log)
           (resolve-effect)
           (start-next-turn))
       (-> with-card-drawn
           (merge action)
           (play-card (:active-card action) current-player)
+          (no-op-message (:active-card action))
           (start-next-turn)))))
 
 (register-handler
