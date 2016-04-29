@@ -1,12 +1,13 @@
 (ns love-letter-cljs.handlers
-    (:require [re-frame.core :refer [trim-v after debug undoable dispatch register-handler]]
-              [love-letter-cljs.db :as db]
-              [love-letter-cljs.utils :as u]
-              [love-letter-cljs.game :as g]
-              [love-letter-cljs.ai :as ai]
-              [cljs.core.match :refer-macros [match]]))
+  (:require [re-frame.core :refer [trim-v after debug undoable dispatch register-handler]]
+            [love-letter-cljs.db :as db]
+            [love-letter-cljs.utils :as u]
+            [love-letter-cljs.game :as g]
+            [love-letter-cljs.ai :as ai]
+            [cljs.core.match :refer-macros [match]]
+            [clojure.string :as s]))
 
-(def standard-middlewares [(when ^boolean goog.DEBUG debug)
+(def standard-middleware [(when ^boolean goog.DEBUG debug)
                            (when ^boolean goog.DEBUG (after db/valid-schema?))
                            trim-v])
 
@@ -17,7 +18,7 @@
 
 (register-handler
  :set-active-screen
- standard-middlewares
+ standard-middleware
  (fn [db [screen-key]]
    (assoc db :active-screen screen-key)))
 
@@ -32,7 +33,7 @@
 
 (register-handler
  :new-game
- [(undoable) standard-middlewares]
+ [(undoable) standard-middleware]
  (fn [db _]
    (-> db
        (reset-state)
@@ -40,7 +41,7 @@
 
 (register-handler
  :set-display-card
- standard-middlewares
+ standard-middleware
  (fn [db [_ face]]
    (assoc-in db [:display-card] face)))
 
@@ -62,23 +63,26 @@
 (defn set-active-card-handler [db [face]]
   (-> db
       (assoc-in [:active-card] face)
+      (assoc :card-target nil)
+      (assoc :guard-guess nil)
       (transition-phase :play face)))
 
 (register-handler
  :set-active-card
  [(undoable)
- standard-middlewares]
+ standard-middleware]
  set-active-card-handler)
 
 (defn set-target-handler [db [target-id]]
   (let [active-card (:active-card db)]
     (-> db
         (assoc-in [:card-target] target-id)
+        (assoc :guard-guess nil)
         (transition-phase :target active-card))))
 
 (register-handler
  :set-target
- [(undoable) standard-middlewares]
+ [(undoable) standard-middleware]
  set-target-handler)
 
 (defn set-guard-guess-handler [db [face]]
@@ -87,7 +91,7 @@
        (transition-phase :guard nil)))
 (register-handler
  :set-guard-guess
- [(undoable) standard-middlewares]
+ [(undoable) standard-middleware]
  set-guard-guess-handler)
 
 
@@ -110,9 +114,13 @@
         players        (player-list db)
         next-player    (next-in-list players current-player)]
     (if (g/game-complete? db)
-      (set-phase db :complete)
+      (-> (set-phase db :complete)
+          (assoc :active-screen :win-screen))
       (-> db
-          (assoc-in [:current-player] next-player)
+          (assoc :current-player next-player)
+          (assoc :active-card nil)
+          (assoc :card-target nil)
+          (assoc :guard-guess nil)
           (assoc-in [:players next-player :protected?] false)
           (set-phase :draw)))))
 
@@ -137,15 +145,26 @@
 
 (register-handler
  :draw-card
- [(undoable) standard-middlewares]
+ [(undoable) standard-middleware]
  (fn [db [player-id]]
    (handle-draw-card db player-id)))
 
 
+(defn action->message [player-id active-card target guard-guess]
+  (case active-card
+    :guard (str "Player " player-id " guesses Player " target " has a " (s/capitalize (name guard-guess)))
+    :priest (str "Player " player-id " uses the Priest to peek at Player " target "'s hand")
+    :baron (str "Player " player-id " uses the Baron to compare cards with Player " target)
+    :handmaid (str "Player " player-id " uses the Handmaid to protect themselves")
+    :prince (str "Player " player-id " uses the Prince to force Player " target " to discard their card")
+    :king  (str "Player " player-id " uses the King to trade hands with Player " target)
+    :countess (str "Player " player-id " discards the Countess")
+    :princess (str "Player " player-id " loses by discarding the Princess")
+    :default "error"))
+
 (defn resolve-effect [db]
   (let [{:keys [card-target active-card guard-guess]} db
-        game db
-        current-player (:current-player game)]
+        current-player (:current-player db)]
     (case active-card
       :guard    (merge db (g/guard-ability    db guard-guess card-target))
       :priest   (merge db (g/reveal-card-to-player db current-player card-target))
@@ -157,7 +176,12 @@
       :princess (merge db (g/kill-player db current-player))
       :default db)))
 
+(defn append-to-log [game]
+  (let [{:keys [active-card current-player guard-guess card-target]} game]
+    (update game :log conj (action->message current-player active-card card-target guard-guess))))
 
+(defn no-op-message [game active-card]
+  (update game :log conj (str (:current-player game) " plays the " (s/capitalize (name active-card)) " with no effect")))
 
 (defn simulate-turn [db]
   (let [{:keys [current-player]} db
@@ -168,22 +192,23 @@
       (-> with-card-drawn
           (merge action)
           (play-card (:active-card action) current-player)
+          (append-to-log)
           (resolve-effect)
           (start-next-turn))
       (-> with-card-drawn
           (merge action)
           (play-card (:active-card action) current-player)
+          (no-op-message (:active-card action))
           (start-next-turn)))))
 
 (register-handler
  :simulate-turn
- [(undoable) standard-middlewares]
+ [(undoable) standard-middleware]
  simulate-turn)
-
 
 (register-handler
  :resolve-effect
- [(undoable) standard-middlewares]
+ [(undoable) standard-middleware]
  (fn [db _]
    (let [active-card    (:active-card db)
          current-player (:current-player db)]
@@ -194,7 +219,7 @@
 
 (register-handler
  :discard-without-effect
- [(undoable) standard-middlewares]
+ [(undoable) standard-middleware]
  (fn [db]
    (let [active-card    (:active-card db)
          current-player (:current-player db)]
@@ -204,12 +229,12 @@
 
 (register-handler
  :toggle-debug-mode
- standard-middlewares
+ standard-middleware
  (fn [db]
    (update db :debug-mode? not)))
 
 (register-handler
  :load-game
- standard-middlewares
+ standard-middleware
  (fn [db [_ game]]
    (merge db game)))

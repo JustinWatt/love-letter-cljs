@@ -1,6 +1,7 @@
 (ns love-letter-cljs.views
   (:require [re-frame.core :refer [subscribe dispatch]]
-            [clojure.string :as s]))
+            [clojure.string :as s]
+            [love-letter-cljs.ai :as ai]))
 
 (defn card-item [card]
   (let [{:keys [face value visible]} card]
@@ -137,8 +138,10 @@
 
 (defn game-container [children]
   [:div.title-screen.flex-container {:style {:margin "auto"
-                                             :width 904
-                                             :height 480
+                                             :width "100%"
+                                             :height "100%"
+                                             :font-family "'Press Start 2P', cursive"
+                                             :color "white"
                                              :background-color "black"}}
    children])
 
@@ -175,7 +178,8 @@
             [:h3 "Burn Pile ("(str (count @burn-pile))")"]
             [card-list @burn-pile]
             [command-panel]
-            #_[:h6 (str @db)]]]
+            [:h5 (str @db)]
+            [:ul (str (seq ai/personality-profiles))]]]
 
           [:div.row
            [:div.col-md-4.col-sm-4.col-xs-4
@@ -195,28 +199,12 @@
            [:div.col-md-4.col-sm-4.col-xs-4
             [card-display]]]]])))
 
-(defn- card-spread [cards on-click classes]
-  (map-indexed
-   (fn [i c]
-     ^{:key (str i (:face c))}
-     [:div.discarded-card
-      {:style {:position "absolute"
-               :left (str (* 30 i) "px")
-               :width "65px"
-               :height "85px"
-               :border-radius "5px"
-               :border-color "black"
-               :border-style "solid"
-               :background-size "contain"
-               :background-image (str "url(images/cardart/" (name (:face c)) ".png)")
-               :border-width "2px"}}]) cards))
-
 (defn discard-pile [cards]
   [:div
    [:div {:style {:position "relative"
                   :height "120px"
                   :width  "425px"
-                  :background-color "darkgray"}}
+                  :background-color "black"}}
     (map-indexed (fn [i c]
                    ^{:key (str i (:face c))}
                    [:div.discarded-card
@@ -231,49 +219,215 @@
                              :background-image (str "url(images/cardart/" (name (:face c)) ".png)")
                              :border-width "2px"}}]) cards)]])
 
+
+
 (defn player-one-area [player-info phase active-player?]
+  (let [player-info (subscribe [:player-info 1])
+        phase       (subscribe [:phase])
+        current-player (subscribe [:current-player])]
   [:div (str player-info)
-   [:div (card-spread
-          (:hand player-info)
-          nil nil
-          )]])
+   [:div
+    (map-indexed
+     (fn [i c]
+       ^{:key (str i (:face c))}
+       [:div
+        {:on-click (when (= :play phase) #(dispatch [:set-active-card (:face c)]))
+         :style {:position "absolute"
+                 :left (str (* 80 i) "px")
+                 :width "65px"
+                 :height "85px"
+                 :border-radius "5px"
+                 :border-color "black"
+                 :border-style "solid"
+                 :background-size "contain"
+                 :background-image (str "url(images/cardart/" (name (:face c)) ".png)")
+                 :border-width "2px"}}]) (:hand player-info))]]))
+
+(defn menu-box-style [offset]
+  {:style {:position "absolute"
+           :left offset
+           :bottom 0
+           :width "25%"
+           :height "100%"
+           :border-width "5px"
+           :border-color "white"
+           :border-style "solid"}})
+
+(defn player-hand [player-info]
+  (let [click-index (reagent.core/atom nil)]
+    (fn []
+      [:div
+       (when (:protected? player-info) [:h3 "Protected"])
+       [:ul.selection-list
+        (map-indexed
+         (fn [i c] ^{:key (str i c)}
+           [:li.list-item {:on-click #(dispatch [:set-active-card (:face c)])}
+            (s/capitalize (str (name (:face c)) " " (apply str (:visible c))))]) (:hand player-info))]])))
+
+(defn target-game-control []
+  (let [display-target? (subscribe [:display-target?])
+        targets         (subscribe [:valid-targets])]
+    (fn []
+      [:div
+      (when @display-target?
+        [:ul.selection-list
+         (if (empty? @targets)
+           [:li {:on-click #(dispatch [:discard-without-effect])} "No Valid Targets"]
+           (map-indexed
+            (fn [i target] ^{:key (str i target)}
+              [:li.list-item
+               {:on-click #(dispatch [:set-target target])}
+               (str "Player " target)]) @targets))])])))
+
+
+
+(defn guard-guess-control []
+  (let [display-guard-guess? (subscribe [:display-guard-guess?])]
+    (fn []
+      (when @display-guard-guess?
+        [:ul.guard-style
+         (map-indexed
+          (fn [i guess] ^{:key (str i guess)}
+            [:li.list-item
+             {:on-click #(dispatch [:set-guard-guess guess])}
+             (s/capitalize (name guess))]) card-faces)]))))
+
+(def face->symbol
+  {:guard "G"
+   :priest "Pst"
+   :baron "B"
+   :handmaid "H"
+   :prince "Prnc"
+   :king   "K"
+   :countess "C"
+   :princess "P"})
+
+(defn in?
+  [coll element]
+  (some #(= element %) coll))
+
+(defn hand->symbols [hand]
+  (s/join
+   (reduce
+    (fn [string card]
+      (if (in? (:visible card) 1)
+        (concat string (face->symbol (:face card)))
+        string)) "" hand)))
+
+(defn player-display [current-player players]
+  [:ul {:style {:list-style "none"
+                :font-size "1em"}}
+   (map-indexed
+    (fn [i p]
+      (let [{:keys [id hand alive? protected?]} p]
+        ^{:key (str "player" i "display")}
+        [:li {:style {:text-decoration (if alive? "" "line-through")
+                      :color (if (= current-player id) "steelblue" "white")}}
+         (str (when protected? (js/String.fromCharCode 9730))
+              " Player " id " "
+              (hand->symbols hand))])) players)])
+
+(defn game-log []
+  (let [log (subscribe [:log])]
+    (fn []
+      [:ul {:style {:list-style "none"
+                    :font-size "1em"}}
+       (map-indexed
+        (fn [i m]
+          ^{:key (str i "message")}
+          [:li m]) (take-last 5 @log))])))
+
 
 (defn game-screen []
   (let [deck              (subscribe [:deck])
         discarded-cards   (subscribe [:discard-pile])
         current-player-id (subscribe [:current-player])
         phase             (subscribe [:current-phase])
-        player-one-info   (subscribe [:player-info 1])]
+        targets           (subscribe [:valid-targets])
+        players           (subscribe [:players])
+        player-one-info   (subscribe [:player-info 1])
+        resolvable?       (subscribe [:resolvable?])]
     (fn []
-      [:div {:style {:font-family "'Press Start 2P', cursive"
-                     :color "white"}}
+      [:div
        [:button {:on-click #(dispatch [:set-active-screen :debug-screen])} "Debug"]
        [:button {:on-click #(dispatch [:simulate-turn])} "Simulate Turn"]
        [:button {:on-click #(dispatch [:new-game])} "New Game"]
 
        [:h3.text-center (str "Player " @current-player-id ", go!")]
-       [:h3.text-center (str (s/capitalize (name @phase)))]
+       [:h3.text-center (str (s/capitalize (name @phase)) " " @resolvable?)]
 
-       [:div#draw-pile {:on-click (when (= @phase :draw ) #(dispatch [:draw-card @current-player-id]))
-                        :style {:position "absolute" :left "27%" :bottom "40%"}}
+       [:div#draw-pile {:style {:position "absolute" :left "27%" :bottom "60%"}}
         [draw-deck (str (count @deck))]]
-       [:div#discard-pile {:style {:position "absolute" :left "35%" :bottom "39%"}}
+
+       [:div#discard-pile {:style {:position "absolute" :left "35%" :bottom "60%"}}
         [discard-pile @discarded-cards]]
-       [:div#player-one {:style {:position "absolute" :left "25%" :bottom "5%"}}
-        [player-one-area @player-one-info]]
+
+       [:div#player-display {:style {:position "absolute" :left "80%" :top "20%"}}
+        [player-display @current-player-id @players]]
+
+       [:div#player-display {:style {:position "absolute" :left "30%" :top "60%"}}
+        [:h6.text-center "Message Log"]
+        [game-log]]
 
 
-       ])))
+
+       [:div#player-controls
+        [:div (menu-box-style "0%")
+         (if (= 1 @current-player-id)
+           (if (= @phase :draw)
+             [:button {:on-click #(dispatch [:draw-card 1])} "Draw"]
+             [player-hand @player-one-info])
+           [:button {:on-click #(dispatch [:simulate-turn])} "Next Turn"])]
+
+        [:div#target-control (menu-box-style "25%")
+         [target-game-control]]
+
+        [:div#guess-control (menu-box-style "50%")
+         [guard-guess-control]]
+
+        [:div#resolve (menu-box-style "75%")
+         [:ul.play-choices [:li {:style {:color (if @resolvable? "white" "red")}
+                                 :on-click (when @resolvable? #(dispatch [:resolve-effect]))} "resolve"]]]]])))
+
+(defn parse-winner [scores]
+  (if (= (count scores) 1)
+    (let [{:keys [id face value]} (peek scores)]
+      [:div.text-center
+       [:h1 "WINNER "]
+       [:h4 (str "Player " id " wins with the " (s/capitalize (name face)) "!")]])
+    [:div
+     [:h1.text-center "GAME OVER"]
+
+      [:ol {:style {:color "white"
+                    :padding-left "175px"
+                    :font-size "1.8em"}}
+       (map-indexed
+        (fn [i s]
+          (let [{:keys [id face value]} s]
+            ^{:key (str id face value)}
+            [:li (str "Player " id " with the " (s/capitalize (name face)) " ("value")" )]))
+        (reverse (sort-by :value scores)))]]))
+
+(defn win-screen []
+  (let [scores (subscribe [:score-game])]
+    (fn []
+      [:div.flex-item {:margin-bottom 200}
+       [:div (parse-winner @scores)]
+       [:button
+        {:style {:position "absolute" :left "45%" :bottom "30%"}
+         :on-click #(do (dispatch [:new-game]) (dispatch [:set-active-screen :game-screen]))} "New Game"]
+       [:h6 {:style {:position "absolute" :bottom "10%" :left "40%"}} "Winners Don't Use Drugs"]])))
 
 (defmulti screens identity)
 (defmethod screens :title-screen [] [title-screen])
 (defmethod screens :debug-screen [] [main-panel])
 (defmethod screens :game-screen [] [game-screen])
+(defmethod screens :win-screen [] [win-screen])
 (defmethod screens :default [] [:div])
 
 (defn main-screen []
   (let [active-screen (subscribe [:active-screen])]
     (fn []
-      [game-container 
+      [game-container
        (screens @active-screen)])))
 
