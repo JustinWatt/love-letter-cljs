@@ -101,8 +101,8 @@
         visible-card        (known-card game current-player target-player)
         filtered-deck       (filter-fresh-deck known-list)]
     (if visible-card
-      (if (= (:face visible-card) guess) 100 0)
-      (* 100 (/ (count (filter #(= guess (:face %)) filtered-deck))
+      (if (= (:face visible-card) guess-face) 100 0)
+      (* 100 (/ (count (filter #(= guess-face (:face %)) filtered-deck))
                 (count filtered-deck))))))
 
 (guard-probability test-game 3 :countess)
