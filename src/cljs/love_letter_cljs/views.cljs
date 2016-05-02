@@ -354,7 +354,7 @@
        [:button {:on-click #(dispatch [:new-game])} "New Game"]
 
        [:h3.text-center (str "Player " @current-player-id ", go!")]
-       [:h3.text-center (str (s/capitalize (name @phase)) " " @resolvable?)]
+       #_[:h3.text-center (str (s/capitalize (name @phase)) " " @resolvable?)]
 
        [:div#draw-pile {:style {:position "absolute" :left "27%" :bottom "60%"}}
         [draw-deck (str (count @deck))]]
@@ -365,8 +365,8 @@
        [:div#player-display {:style {:position "absolute" :left "80%" :top "20%"}}
         [player-display @current-player-id @players]]
 
-       [:div#player-display {:style {:position "absolute" :left "30%" :top "60%"}}
-        [:h6.text-center "Message Log"]
+       [:div#player-display {:style {:position "absolute" :left "0%" :top "45%" :width "100%"}}
+        [:h6.text-left "Message Log"]
         [game-log]]
 
 
