@@ -214,6 +214,7 @@
          current-player (:current-player db)]
      (-> db
          (play-card active-card current-player)
+         (append-to-log)
          (resolve-effect)
          (start-next-turn)))))
 
@@ -225,6 +226,7 @@
          current-player (:current-player db)]
      (-> db
          (play-card active-card current-player)
+         (no-op-message active-card)
          (start-next-turn)))))
 
 (register-handler

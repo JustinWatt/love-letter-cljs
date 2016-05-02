@@ -10,7 +10,6 @@
                    :defensive
                    :bluff])
 
-;;; AI STUFF
 (def complete-deck
   [{:face :handmaid :value 4 :visible []}
    {:face :guard    :value 1 :visible []}
