@@ -158,7 +158,7 @@
         current-player (subscribe [:current-player])
         db             (subscribe [:db])]
     (fn []
-      [:div.container-fluid {:style {:color "grey"}}
+      [:div.container-fluid {:style {:color "white"}}
        [:button {:on-click #(dispatch [:set-active-screen :game-screen])} "Exit Debug"]
          [:div
           [:div.row
@@ -188,7 +188,7 @@
 
            [:div.col-md-4.col-sm-4.col-xs-4
             [:h3 "Discard Pile ("(str (count @discard-pile))")"]
-            #_[:div {:style {:height "50px" :width "35px"
+            [:div {:style {:height "50px" :width "35px"
                            :background-color "#7f0000"
                            :border-radius "3px"
                            :text-align "center"
@@ -352,6 +352,7 @@
        [:button {:on-click #(dispatch [:set-active-screen :debug-screen])} "Debug"]
        [:button {:on-click #(dispatch [:simulate-turn])} "Simulate Turn"]
        [:button {:on-click #(dispatch [:new-game])} "New Game"]
+       [secret-controls]
 
        [:h3.text-center (str "Player " @current-player-id ", go!")]
        #_[:h3.text-center (str (s/capitalize (name @phase)) " " @resolvable?)]
@@ -412,6 +413,9 @@
   (let [scores (subscribe [:score-game])]
     (fn []
       [:div.flex-item {:margin-bottom 200}
+       [:div {:style {:position "absolute" :left "50%" :top "5%"
+                      :font-size ".7em"}}
+        [game-log]]
        [:div (parse-winner @scores)]
        [:button
         {:style {:position "absolute" :left "45%" :bottom "30%"}
