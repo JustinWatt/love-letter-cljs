@@ -89,11 +89,11 @@
   (-> db
        (assoc-in [:guard-guess] face)
        (transition-phase :guard nil)))
+
 (register-handler
  :set-guard-guess
  [(undoable) standard-middleware]
  set-guard-guess-handler)
-
 
 ;; For cycling turns
 (defn next-in-list [item-list current]
@@ -149,13 +149,12 @@
  (fn [db [player-id]]
    (handle-draw-card db player-id)))
 
-
 (defn action->message [player-id active-card target guard-guess]
   (case active-card
     :guard (str "Player " player-id " guesses Player " target " has a " (s/capitalize (name guard-guess)))
     :priest (str "Player " player-id " uses the Priest to peek at Player " target "'s hand")
     :baron (str "Player " player-id " uses the Baron to compare cards with Player " target)
-    :handmaid (str "Player " player-id " uses the Handmaid to protect themselves")
+    :handmaid (str "Player " player-id " uses the Handmaid to protect themself")
     :prince (str "Player " player-id " uses the Prince to force Player " target " to discard their card")
     :king  (str "Player " player-id " uses the King to trade hands with Player " target)
     :countess (str "Player " player-id " discards the Countess")
@@ -181,7 +180,8 @@
     (update game :log conj (action->message current-player active-card card-target guard-guess))))
 
 (defn no-op-message [game active-card]
-  (update game :log conj (str (:current-player game) " plays the " (s/capitalize (name active-card)) " with no effect")))
+  (update game :log conj (str "Player " (:current-player game) " plays the "
+                              (s/capitalize (name active-card)) " with no effect")))
 
 (defn simulate-turn [db]
   (let [{:keys [current-player]} db
