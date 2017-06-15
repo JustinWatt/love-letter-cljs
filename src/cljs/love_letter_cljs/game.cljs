@@ -1,7 +1,7 @@
 (ns love-letter-cljs.game
   "Main game logic, game generation and rules for each individual card"
   (:require [clojure.set :as set]
-            [love-letter-cljs.utils :refer [find-card]]))
+            [love-letter-cljs.utils :as utils]]))
 
 (def cards [{:face :guard    :value 1 :count 5}
             {:face :priest   :value 2 :count 2}
@@ -20,10 +20,10 @@
   (-> (mapcat generate-card cards) shuffle vec))
 
 (defn create-player [n personality]
-  {:id n
-   :hand []
-   :alive? true
-   :protected? false
+  {:id          n
+   :hand        []
+   :alive?      true
+   :protected?  false
    :personality personality})
 
 (def personalities
@@ -38,10 +38,10 @@
      (assoc m (:id player) player)) {} (create-players n)))
 
 (defn create-game []
-  {:deck (generate-deck)
-   :discard-pile []
-   :burn-pile []
-   :players (add-players 4)
+  {:deck           (generate-deck)
+   :discard-pile   []
+   :burn-pile      []
+   :players        (add-players 4)
    :current-player 1})
 
 (defn move-card [game source destination]
@@ -53,8 +53,9 @@
 
 (defn deal-cards [game]
   (let [player-ids (keys (:players game))]
-    (reduce (fn [g id]
-              (move-card g [:deck] [:players id :hand])) game player-ids)))
+    (reduce
+     (fn [g id]
+       (move-card g [:deck] [:players id :hand])) game player-ids)))
 
 (defn create-and-deal []
   (-> (create-game)
@@ -79,8 +80,8 @@
 (defn baron-ability [game player target]
   "Compares the player's card to target, lower value is removed
    from game"
-  (let [player-card (find-card game player)
-        target-card (find-card game target)]
+  (let [player-card (utils/find-card game player)
+        target-card (utils/find-card game target)]
     (condp #(%1 (:value player-card) %2) (:value target-card)
       > (kill-player game target)
       < (kill-player game player)
@@ -91,24 +92,24 @@
 (defn guard-ability [game guess target]
   "Guesses a targets card, removes the player if the guess
    is correct"
-  (let [target-card (find-card game target)]
-    (if (and (not= :guard (target-card :face))
-             (= guess (target-card :face)))
+  (let [target-card-face (:face (utils/find-card game target))]
+    (if (and (not= :guard target-card-face)
+             (= guess target-card-face))
       (kill-player game target)
       game)))
 
 (defn king-ability [game player target]
   "Trades the player's card with the target's card"
-  (let [player-card (find-card game player)
-        target-card (find-card game target)]
+  (let [player-card (utils/find-card game player)
+        target-card (utils/find-card game target)]
     (-> game
         (assoc-in [:players target :hand] [(update-in player-card [:visible] conj player)])
         (assoc-in [:players player :hand] [(update-in target-card [:visible] conj target)]))))
 
 (defn prince-ability [game target]
   "Causes the target to discard their card"
-  (let [target-card (find-card game target)]
-    (if (= :princess (:face target-card))
+  (let [target-card-face (:face (utils/find-card game target))]
+    (if (= :princess target-card-face)
       (kill-player game target)
       (-> game
           (move-card [:players target :hand] [:discard-pile])

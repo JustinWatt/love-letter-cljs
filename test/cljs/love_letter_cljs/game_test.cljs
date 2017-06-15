@@ -5,9 +5,9 @@
 ;; helpers
 (defn discard-n [game n]
   (->> game
-       (iterate #(sut/move-card % [:deck] [:discard-pile]))
-       (drop n)
-       first))
+     (iterate #(sut/move-card % [:deck] [:discard-pile]))
+     (drop n)
+     first))
 
 ;; (create-and-deal)
 (def test-game-a
@@ -31,17 +31,17 @@
 
 (def test-game-b
   {:deck [{:face :guard,    :value 1 :visible []}
-           {:face :baron,    :value 3 :visible []}
-           {:face :priest,   :value 2 :visible []}
-           {:face :guard,    :value 1 :visible []}
-           {:face :handmaid, :value 4 :visible []}
-           {:face :prince,   :value 5 :visible []}
-           {:face :handmaid, :value 4 :visible []}
-           {:face :guard,    :value 1 :visible []}
-           {:face :princess, :value 8 :visible []}
-           {:face :baron,    :value 3 :visible []}
-           {:face :prince,   :value 5 :visible []}
-           {:face :king,     :value 6 :visible []}],
+          {:face :baron,    :value 3 :visible []}
+          {:face :priest,   :value 2 :visible []}
+          {:face :guard,    :value 1 :visible []}
+          {:face :handmaid, :value 4 :visible []}
+          {:face :prince,   :value 5 :visible []}
+          {:face :handmaid, :value 4 :visible []}
+          {:face :guard,    :value 1 :visible []}
+          {:face :princess, :value 8 :visible []}
+          {:face :baron,    :value 3 :visible []}
+          {:face :prince,   :value 5 :visible []}
+          {:face :king,     :value 6 :visible []}],
    :discard-pile [],
    :players {1 {:id 1, :hand [{:face :guard,  :value 1 :visible []}], :alive? true},
              2 {:id 2, :hand [{:face :priest, :value 2 :visible []}], :alive? true},
@@ -54,67 +54,67 @@
   (is (= {:guard 5 :priest 2 :baron 2 :handmaid 2
           :prince 2 :king 1 :countess 1 :princess 1}
          (->> (sut/create-game)
-              :deck
-              (map :face)
-              frequencies))))
+            :deck
+            (map :face)
+            frequencies))))
 
 (deftest baron-ability-test
   (testing "When a guard is compared to a priest the player with the guard is knocked out"
     (is (= false
            (-> test-game-a
-               (sut/baron-ability 1 2)
-               (get-in [:players 1 :alive?]))))))
+              (sut/baron-ability 1 2)
+              (get-in [:players 1 :alive?]))))))
 
 (deftest guard-ability-test
   (testing "When the target's card is correctly guessed they are knocked out"
     (is (= true
            (-> test-game-a
-               (sut/guard-ability :priest 2)
-               (get-in [:players 2 :alive?]))))))
+              (sut/guard-ability :priest 2)
+              (get-in [:players 2 :alive?]))))))
 
 (deftest king-ability-test
   (testing "Target gains players card"
     (is (= [{:face :guard :value 1 :visible [1]}]
            (-> test-game-a
-               (sut/king-ability 1 2)
-               (get-in [:players 2 :hand])))))
+              (sut/king-ability 1 2)
+              (get-in [:players 2 :hand])))))
   (testing "Player gains targets card"
     (is (= [{:face :priest :value 2 :visible [2]}]
            (-> test-game-a
-               (sut/king-ability 1 2)
-               (get-in [:players 1 :hand]))))))
+              (sut/king-ability 1 2)
+              (get-in [:players 1 :hand]))))))
 
 (deftest prince-ability-test
   (is (= [{:face :guard :value 1 :visible []}]
          (-> test-game-a
-             (sut/prince-ability 2)
-             (get-in [:players 2 :hand])))))
+            (sut/prince-ability 2)
+            (get-in [:players 2 :hand])))))
 
 (deftest game-complete-non-empty-deck
   (is (= false
          (-> (sut/create-and-deal)
-             (discard-n 10)
-             sut/game-complete?))))
+            (discard-n 10)
+            sut/game-complete?))))
 
 (deftest game-complete-empty-deck
   (is (= true
          (-> (sut/create-and-deal)
-             (discard-n 12)
-             sut/game-complete?))))
+            (discard-n 12)
+            sut/game-complete?))))
 
 (deftest countess-check-test
   (is (= true
          (-> test-game-a
-             (sut/countess-check 4))))
+            (sut/countess-check 4))))
   (is (= false
          (-> test-game-a
-             (sut/countess-check 3)))))
+            (sut/countess-check 3)))))
 
 (deftest remove-protection-test
   (is (= false
          (-> test-game-a
-             sut/remove-protection
-             (get-in [:players 1 :protected?])))))
+            sut/remove-protection
+            (get-in [:players 1 :protected?])))))
 
 (deftest count-alive-test
   (is (= 3 (-> test-game-a sut/count-alive))))
@@ -122,15 +122,14 @@
 (deftest reveal-card-to-player-test
   (is (= [1]
          (-> test-game-a
-             (sut/reveal-card-to-player 1 2)
-             (get-in [:players 2 :hand])
-             (->> first
-                  :visible)))))
+            (sut/reveal-card-to-player 1 2)
+            (get-in [:players 2 :hand])
+            (->> first
+               :visible)))))
 
 (deftest move-card-test
-  (is (= {:face :guard,:value 1 :visible []} 
+  (is (= {:face :guard :value 1 :visible []}
          (-> test-game-a
-             (sut/move-card [:deck] [:discard-pile])
-             (get-in [:discard-pile])
-             first))))
-
+            (sut/move-card [:deck] [:discard-pile])
+            (get-in [:discard-pile])
+            first))))
