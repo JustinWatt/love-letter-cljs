@@ -9,7 +9,7 @@
 
   :min-lein-version "2.5.3"
 
-  :source-paths ["src/clj" "src/cljs"]
+  :source-paths ["src/clj" "src/cljs" "src/cljc"]
 
   :plugins [[lein-cljsbuild "1.1.3"]
             [lein-figwheel "0.5.2"]
@@ -23,14 +23,14 @@
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]
                                   [figwheel-sidecar "0.5.0-2"]]
                    :source-paths ["cljs_src" "dev"]}
-             :repl {:plugins [[cider/cider-nrepl "0.12.0"]]}}
+             :repl {:plugins [[cider/cider-nrepl "0.16.0-snapshot"]]}}
 
   :figwheel-options {:port 7888}
 
   :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
 
   :cljsbuild {:builds [{:id "dev"
-                        :source-paths ["src/cljs"]
+                        :source-paths ["src/cljs" "src/cljc"]
                         :figwheel {:on-jsload "love-letter-cljs.core/mount-root"}
                         :compiler {:main love-letter-cljs.core
                                    :output-to "resources/public/js/compiled/app.js"
@@ -48,13 +48,13 @@
                                    :source-map-timestamp true}}
 
                        {:id "test"
-                        :source-paths ["src/cljs" "test/cljs"]
+                        :source-paths ["src/cljc" "test/cljc" "src/cljs" "test/cljs"]
                         :compiler {:output-to "resources/public/js/compiled/test.js"
                                    :main love-letter-cljs.runner
                                    :optimizations :none}}
 
                        {:id "min"
-                        :source-paths ["src/cljs"]
+                        :source-paths ["src/cljs" "src/cljc"]
                         :compiler {:main love-letter-cljs.core
                                    :output-to "resources/public/js/compiled/app.js"
                                    :optimizations :advanced

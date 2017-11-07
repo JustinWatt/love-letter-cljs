@@ -44,8 +44,9 @@
    :players        (add-players 4)
    :current-player 1})
 
-(defn move-card [game source destination]
+(defn move-card
   "Move the first card from a source to a destination"
+  [game source destination]
   (let [card (first (get-in game source))]
     (-> game
         (update-in source (comp vec rest))
@@ -66,20 +67,22 @@
   "Deactivates a player and moves their card to the discard pile"
   [game target]
   (-> game
-      (update-in [:players target :alive?] not)
+      (assoc-in [:players target :alive?] false)
       (move-card [:players target :hand] [:discard-pile])))
 
-(defn reveal-card-to-player [game player target]
+(defn reveal-card-to-player
   "Adds a target's id to the given player's card visibility list"
+  [game player target]
   (update-in game [:players target :hand 0 :visible] conj player))
 
-(defn handmaid-ability [game player]
+(defn handmaid-ability
   "Protects the player from card effects"
+  [game player]
   (assoc-in game [:players player :protected?] true))
 
-(defn baron-ability [game player target]
-  "Compares the player's card to target, lower value is removed
-   from game"
+(defn baron-ability
+  "Compares the player's card to target, lower value is removed from game"
+  [game player target]
   (let [player-card (utils/find-card game player)
         target-card (utils/find-card game target)]
     (condp #(%1 (:value player-card) %2) (:value target-card)
@@ -89,25 +92,27 @@
             (reveal-card-to-player player target)
             (reveal-card-to-player target player)))))
 
-(defn guard-ability [game guess target]
-  "Guesses a targets card, removes the player if the guess
-   is correct"
+(defn guard-ability
+  "Guesses a targets card, removes the player if the guess is correct"
+  [game guess target]
   (let [target-card-face (:face (utils/find-card game target))]
     (if (and (not= :guard target-card-face)
              (= guess target-card-face))
       (kill-player game target)
       game)))
 
-(defn king-ability [game player target]
+(defn king-ability
   "Trades the player's card with the target's card"
+  [game player target]
   (let [player-card (utils/find-card game player)
         target-card (utils/find-card game target)]
     (-> game
         (assoc-in [:players target :hand] [(update-in player-card [:visible] conj player)])
         (assoc-in [:players player :hand] [(update-in target-card [:visible] conj target)]))))
 
-(defn prince-ability [game target]
+(defn prince-ability
   "Causes the target to discard their card"
+  [game target]
   (let [target-card-face (:face (utils/find-card game target))]
     (if (= :princess target-card-face)
       (kill-player game target)
@@ -116,10 +121,10 @@
           (move-card [:deck] [:players target :hand])))))
 
 (defn score-hand [player]
-  (let [hand (player :hand)]
+  (let [player-card (-> player :hand peek)]
     (merge
      (select-keys player [:id])
-     (select-keys (peek hand) [:face :value]))))
+     (select-keys player-card [:face :value]))))
 
 (defn score-game [game]
   (-> game
@@ -134,8 +139,9 @@
        score-game
        (apply max-key :value)))
 
-(defn count-alive [game]
+(defn count-alive
   "Returns the number of players remaining"
+  [game]
   (-> game
       :players
       vals
@@ -143,14 +149,16 @@
        (filter :alive?)
        count)))
 
-(defn game-complete? [game]
+(defn game-complete?
   "Game is complete when one player remains or the deck is empty"
+  [game]
   (or (= 1 (count-alive game))
       (empty? (:deck game))))
 
-(defn countess-check [game player-id]
+(defn countess-check
   "Checks the players hand for cards that cause the countess to
    be discarded automatically"
+  [game player-id]
   (->> (get-in game [:players player-id :hand])
        (map :face)
        set

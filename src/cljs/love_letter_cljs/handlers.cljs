@@ -135,7 +135,7 @@
         discarded-card (retrieve-card db face player-id)]
     (when (nil? discarded-card) (throw (js/Error. "Tried to discard a nil card")))
     (-> db
-        (assoc-in path (u/remove-first face (get-in db path)))
+        (assoc-in path (u/remove-first (get-in db path) face))
         (update-in [:discard-pile] conj discarded-card))))
 
 (defn handle-draw-card [db player-id]

@@ -1,6 +1,5 @@
 (ns love-letter-cljs.ai
-  (:require [love-letter-cljs.utils :as u]
-            [re-frame.core :as re-frame]))
+  (:require [love-letter-cljs.utils :as u]))
 
 (def complete-deck
   [{:face :handmaid :value 4 :visible []}
@@ -23,16 +22,14 @@
 (defn known-card [game player target]
   (let [target-card (get-in game [:players target :hand 0])
         visible-set (set (:visible target-card))]
-    (if (contains? visible-set player)
-      target-card
-      nil)))
+    (when (contains? visible-set player)
+      target-card)))
 
 (defn player-hand [game id]
   (get-in game [:players id :hand]))
 
 (defn filter-fresh-deck [card-list]
-  (reduce (fn [deck card]
-            (u/remove-first card deck)) complete-deck card-list))
+  (reduce u/remove-first complete-deck card-list))
 
 (defn high-card [game card]
   "Probability of a given card being the most valuable card left in the game."
@@ -99,8 +96,8 @@
   "Probability for the player to discard the princess on purpose"
   [] -1)
 
-(defn get-other-card [card hand]
-  (peek (u/remove-first card hand)))
+(defn get-other-card [hand card]
+  (peek (u/remove-first hand card)))
 
 (defn king-assist-probability [game target-player]
   "If the opponents card is known, how valuable trading for it would be.
@@ -108,7 +105,7 @@
   (let [{:keys [current-player]} game
         current-player-hand (player-hand game current-player)
         visible-card        (known-card game current-player target-player)
-        players-other-card  (get-other-card :king current-player-hand)]
+        players-other-card  (get-other-card current-player-hand :king)]
     (if visible-card
       (case (:face visible-card)
         :guard     80
@@ -143,7 +140,7 @@
       (if (contains-attack-card? current-player-hand) 100 50))))
 
 (defn holding-princess? [hand]
-  (= :princess (:face (get-other-card :countess hand))))
+  (= :princess (:face (get-other-card hand :countess))))
 
 (defn countess-bluff [game]
   (let [{:keys [current-player]} game
@@ -255,8 +252,9 @@
    :type :suicide
    :strength (princess-suicide-probability)})
 
-(defn generate-card-actions [game card]
+(defn generate-card-actions
   "Generates actions for each card"
+  [game card]
   (let [high-card-action (generate-high-card-action game card)
         targets (u/valid-targets game)]
     (cons high-card-action
@@ -276,29 +274,29 @@
   (vec (set (map #(select-keys % [:face :value]) hand))))
 
 (def personality-profiles
-  {:aggressive {:eliminate .80
-                :assist    .70
-                :high-card .40
-                :defensive .40
-                :survive   .25
-                :bluff     .15
-                :suicide  1}
+  {:aggressive {:eliminate 0.80
+                :assist    0.70
+                :high-card 0.40
+                :defensive 0.40
+                :survive   0.25
+                :bluff     0.15
+                :suicide   1}
 
-   :defensive  {:eliminate .40
-                :assist    .25
-                :high-card .40
-                :defensive .80
-                :survive   .80
-                :bluff     .15
-                :suicide  1}
+   :defensive {:eliminate 0.40
+               :assist    0.25
+               :high-card 0.40
+               :defensive 0.80
+               :survive   0.80
+               :bluff     0.15
+               :suicide   1}
 
-   :base       {:eliminate 1
-                :assist    1
-                :high-card 1
-                :defensive 1
-                :survive   1
-                :bluff     1
-                :suicide   1}})
+   :base {:eliminate 1
+          :assist    1
+          :high-card 1
+          :defensive 1
+          :survive   1
+          :bluff     1
+          :suicide   1}})
 
 (defn apply-personality [personality action]
   "Applies a given personality to the action."
@@ -325,16 +323,18 @@
                 (= (:active-card (:action %))
                    (:active-card (:action best-action)))) actions))
 
-(defn no-op-action [face current-player]
+(defn no-op-action
   "Used to handle discarding a card without resolving it's effects."
+  [face current-player]
   {:action {:active-card face
             :card-target nil
             :current-player current-player
             :guard-guess nil}})
 
-(defn pick-action [actions]
+(defn pick-action
   "A pretty ugly function that is used handle action picking
    or no-op when there is no appropriate action."
+  [actions]
   (let [best-action   (first actions)]
     (if (not= :high-card (:type best-action))
       best-action
