@@ -20,4 +20,11 @@
   (let [[pre post] (split-with #(not= face (:face %)) coll)]
     (vec (concat pre (rest post)))))
 
+;; For cycling turns
+(defn next-in-list [item-list current]
+  (as-> item-list i
+    (filter #(> % current) i)
+    (or (first i)
+        (first item-list))))
+
 

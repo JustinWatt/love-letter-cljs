@@ -126,6 +126,21 @@
      (select-keys player [:id])
      (select-keys player-card [:face :value]))))
 
+(defn start-next-turn [game]
+  (let [current-player (:current-player game)
+        players        (player-list game)
+        next-player    (next-in-list players current-player)]
+    (if (game-complete? game)
+      (-> (set-phase game :complete)
+          (assoc :active-screen :win-screen))
+      (-> (assoc game
+                 :current-player next-player
+                 :active-card nil
+                 :card-target nil
+                 :guard-guess nil)
+          (assoc-in [:players next-player :protected?] false)
+          (set-phase :draw)))))
+
 (defn score-game [game]
   (-> game
       :players

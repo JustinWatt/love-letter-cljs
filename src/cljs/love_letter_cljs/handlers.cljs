@@ -36,7 +36,7 @@
  [(undoable) standard-middleware]
  (fn [db _]
    (-> db
-       (reset-state)
+       reset-state
        (merge (g/create-and-deal)))))
 
 (register-handler
@@ -95,13 +95,6 @@
  [(undoable) standard-middleware]
  set-guard-guess-handler)
 
-;; For cycling turns
-(defn next-in-list [item-list current]
-  (as-> item-list i
-    (filter #(> % current) i)
-    (or (first i)
-        (first item-list))))
-
 (defn player-list [game]
   (->> game
        :players
@@ -109,38 +102,22 @@
        (filter :alive?)
        (mapv :id)))
 
-(defn start-next-turn [db]
-  (let [current-player (:current-player db)
-        players        (player-list db)
-        next-player    (next-in-list players current-player)]
-    (if (g/game-complete? db)
-      (-> (set-phase db :complete)
-          (assoc :active-screen :win-screen))
-      (-> db
-          (assoc :current-player next-player)
-          (assoc :active-card nil)
-          (assoc :card-target nil)
-          (assoc :guard-guess nil)
-          (assoc-in [:players next-player :protected?] false)
-          (set-phase :draw)))))
-
 (defn retrieve-card [db face current-player]
-  (let [path [:players current-player :hand]]
-    (->> (get-in db path)
-         (filter #(= face (:face %)))
-         first)))
+  (->> (get-in db [:players current-player :hand])
+       (filter #(= face (:face %)))
+       first))
 
 (defn play-card [db face player-id]
-  (let [path [:players player-id :hand]
+  (let [path           [:players player-id :hand]
         discarded-card (retrieve-card db face player-id)]
-    (when (nil? discarded-card) (throw (js/Error. "Tried to discard a nil card")))
-    (-> db
-        (assoc-in path (u/remove-first (get-in db path) face))
-        (update-in [:discard-pile] conj discarded-card))))
+    (if (nil? discarded-card)
+      (throw (js/Error. "Tried to discard a nil card"))
+      (-> db
+          (assoc-in path (u/remove-first (get-in db path) face))
+          (update-in [:discard-pile] conj discarded-card)))))
 
 (defn handle-draw-card [db player-id]
-  (-> db
-      (g/move-card [:deck] [:players player-id :hand])
+  (-> (g/move-card db [:deck] [:players player-id :hand])
       (set-phase :play)))
 
 (register-handler
@@ -150,28 +127,29 @@
    (handle-draw-card db player-id)))
 
 (defn action->message [player-id active-card target guard-guess]
-  (case active-card
-    :guard    (str "Player " player-id " guesses Player " target " has a " (s/capitalize (name guard-guess)))
-    :priest   (str "Player " player-id " uses the Priest to peek at Player " target "'s hand")
-    :baron    (str "Player " player-id " uses the Baron to compare cards with Player " target)
-    :handmaid (str "Player " player-id " uses the Handmaid to protect themself")
-    :prince   (str "Player " player-id " uses the Prince to force Player " target " to discard their card")
-    :king     (str "Player " player-id " uses the King to trade hands with Player " target)
-    :countess (str "Player " player-id " discards the Countess")
-    :princess (str "Player " player-id " loses by discarding the Princess")
-    :default "error"))
+  (str "Player " player-id
+       (case active-card
+         :guard    (str " guesses Player " target " has a " (s/capitalize (name guard-guess)))
+         :priest   (str " uses the Priest to peek at Player " target "'s hand")
+         :baron    (str " uses the Baron to compare cards with Player " target)
+         :handmaid (str " uses the Handmaid to protect themself")
+         :prince   (str " uses the Prince to force Player " target " to discard their card")
+         :king     (str " uses the King to trade hands with Player " target)
+         :countess (str " discards the Countess")
+         :princess (str " loses by discarding the Princess")
+         :default "error")))
 
 (defn resolve-effect [{:keys [card-target active-card guard-guess current-player] :as db}]
   (case active-card
-    :guard    (merge db (g/guard-ability    db guard-guess card-target))
-    :priest   (merge db (g/reveal-card-to-player db current-player card-target))
-    :baron    (merge db (g/baron-ability    db current-player card-target))
-    :handmaid (merge db (g/handmaid-ability db current-player))
-    :prince   (merge db (g/prince-ability   db card-target))
-    :king     (merge db (g/king-ability     db current-player card-target))
+    :guard    (g/guard-ability         db guard-guess card-target)
+    :priest   (g/reveal-card-to-player db current-player card-target)
+    :baron    (g/baron-ability         db current-player card-target)
+    :handmaid (g/handmaid-ability      db current-player)
+    :prince   (g/prince-ability        db card-target)
+    :king     (g/king-ability          db current-player card-target)
     :countess db
-    :princess (merge db (g/kill-player db current-player))
-    :default db))
+    :princess (g/kill-player db current-player)
+    :default  db))
 
 (defn append-to-log [{:keys [active-card
                              current-player
@@ -188,23 +166,24 @@
   (update game :log conj (str "Player " (:current-player game) " plays the "
                               (s/capitalize (name active-card)) " with no effect")))
 
-(defn simulate-turn [db]
-  (let [{:keys [current-player]} db
-        with-card-drawn (handle-draw-card db current-player)
-        actions (ai/generate-actions with-card-drawn current-player)
-        action (:action (ai/pick-action actions))]
+(defn simulate-turn [game]
+  (let [{:keys [current-player]} game
+        with-card-drawn (handle-draw-card game current-player)
+        action (->> (ai/generate-actions with-card-drawn current-player)
+                    ai/pick-action
+                    :action)]
     (if (seq (u/valid-targets with-card-drawn))
       (-> with-card-drawn
           (merge action)
           (play-card (:active-card action) current-player)
-          (append-to-log)
-          (resolve-effect)
-          (start-next-turn))
+          append-to-log
+          resolve-effect
+          start-next-turn)
       (-> with-card-drawn
           (merge action)
           (play-card (:active-card action) current-player)
           (no-op-message (:active-card action))
-          (start-next-turn)))))
+          start-next-turn))))
 
 (register-handler
  :simulate-turn
@@ -217,9 +196,9 @@
  (fn [{:keys [active-card current-player] :as db} _]
    (-> db
        (play-card active-card current-player)
-       (append-to-log)
-       (resolve-effect)
-       (start-next-turn))))
+       append-to-log
+       resolve-effect
+       start-next-turn)))
 
 (register-handler
  :discard-without-effect
@@ -228,7 +207,7 @@
    (-> db
        (play-card active-card current-player)
        (no-op-message active-card)
-       (start-next-turn))))
+       start-next-turn)))
 
 (register-handler
  :toggle-debug-mode
