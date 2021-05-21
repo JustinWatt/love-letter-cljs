@@ -4,7 +4,6 @@
                  [reagent "0.6.0-alpha"]
                  [re-frame "0.7.0"]
                  [prismatic/schema "1.1.0"]
-                 [devcards "0.2.1-6"]
                  [org.clojure/core.match "0.3.0-alpha4"]]
 
   :min-lein-version "2.5.3"
@@ -12,13 +11,11 @@
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
 
   :plugins [[lein-cljsbuild "1.1.3"]
-            [lein-figwheel "0.5.2"]
             [lein-doo "0.1.6"]]
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"
                                     "test/js"]
 
-  :figwheel {:css-dirs ["resources/public/css"]}
 
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]
                                   [figwheel-sidecar "0.5.0-2"]]
@@ -31,27 +28,11 @@
 
   :cljsbuild {:builds [{:id "dev"
                         :source-paths ["src/cljs" "src/cljc"]
-                        :figwheel {:on-jsload "love-letter-cljs.core/mount-root"}
                         :compiler {:main love-letter-cljs.core
                                    :output-to "resources/public/js/compiled/app.js"
                                    :output-dir "resources/public/js/compiled/out"
                                    :asset-path "js/compiled/out"
                                    :source-map-timestamp true}}
-
-                       {:id "devcards"
-                        :source-paths ["src"]
-                        :figwheel {:devcards true}
-                        :compiler {:main love-letter-cljs.cards
-                                   :output-to "resources/public/js/compiled/love_letter_cljs_devcards.js"
-                                   :output-dir "resources/public/js/compiled/devcards_out"
-                                   :asset-path "js/compiled/devcards_out"
-                                   :source-map-timestamp true}}
-
-                       {:id "test"
-                        :source-paths ["src/cljc" "test/cljc" "src/cljs" "test/cljs"]
-                        :compiler {:output-to "resources/public/js/compiled/test.js"
-                                   :main love-letter-cljs.runner
-                                   :optimizations :none}}
 
                        {:id "min"
                         :source-paths ["src/cljs" "src/cljc"]
