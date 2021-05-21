@@ -1,8 +1,8 @@
 (ns love-letter-cljs.subs
-    (:require-macros [reagent.ratom :refer [reaction]])
-    (:require [cljs.core.match :refer-macros [match]]
-              [re-frame.core :refer [register-sub subscribe]]
-              [love-letter-cljs.utils :refer [valid-targets]]))
+  (:require-macros [reagent.ratom :refer [reaction]])
+  (:require [cljs.core.match :refer-macros [match]]
+            [re-frame.core :refer [register-sub subscribe]]
+            [love-letter-cljs.utils :refer [valid-targets]]))
 
 (register-sub
  :deck
@@ -93,7 +93,6 @@
 
 (def not-nil? (complement nil?))
 
-
 (defn display-guard-guess? [face target]
   (and (= face :guard)
        (not= nil target)))
@@ -112,7 +111,6 @@
    (reaction
     (let [{:keys [active-card]} @db]
       (display-target? active-card)))))
-
 
 (register-sub
  :display-guard-guess?

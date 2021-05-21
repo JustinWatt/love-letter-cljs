@@ -5,7 +5,7 @@
       (get-in [:players target :hand])
       first))
 
-(defn- valid-target? [current-player {:keys [id protected? alive?] :as player}]
+(defn- valid-target? [current-player {:keys [id protected? alive?]}]
   (and (not= current-player id)
        (and alive? (not protected?))))
 
@@ -27,4 +27,12 @@
     (or (first i)
         (first item-list))))
 
+(defn player-list [game]
+  (->> game
+       :players
+       vals
+       (filter :alive?)
+       (mapv :id)))
 
+(defn set-phase [game phase]
+  (assoc-in game [:phase] phase))

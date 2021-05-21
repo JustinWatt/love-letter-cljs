@@ -20,7 +20,6 @@
                   :border-color "blue"}}]
    [:h4.text-center (str card-count)]])
 
-
 (defcard-rg render-deck
   [deck :guard 11])
 
@@ -40,7 +39,6 @@
                                   :background-size "contain"
                                   :background-image "url(images/cardart/card-back-pixelated.png)"
                                   :border-width "2px"}}]) cards)]])
-
 
 (defcard-rg render-discard
   [discard-pile [1 2 3 4 5 7 8 9 10 11 12 13 14 15]])

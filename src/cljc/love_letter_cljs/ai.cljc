@@ -171,6 +171,8 @@
 
 
 ; Functions for generating card actions
+
+
 (defn guard-elimination-action
   [game [target guess]]
   {:action {:current-player (:current-player game)
@@ -234,7 +236,7 @@
             :card-target target-id
             :guard-guess nil}
    :type :assist
-   :strength (king-assist-probability game target-id)} )
+   :strength (king-assist-probability game target-id)})
 
 (defn countess-bluff-action [game]
   {:action {:current-player (:current-player game)

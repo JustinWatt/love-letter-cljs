@@ -1,7 +1,7 @@
 (ns love-letter-cljs.game
   "Main game logic, game generation and rules for each individual card"
   (:require [clojure.set :as set]
-            [love-letter-cljs.utils :as utils]]))
+            [love-letter-cljs.utils :as utils]))
 
 (def cards [{:face :guard    :value 1 :count 5}
             {:face :priest   :value 2 :count 2}
@@ -126,34 +126,6 @@
      (select-keys player [:id])
      (select-keys player-card [:face :value]))))
 
-(defn start-next-turn [game]
-  (let [current-player (:current-player game)
-        players        (player-list game)
-        next-player    (next-in-list players current-player)]
-    (if (game-complete? game)
-      (-> (set-phase game :complete)
-          (assoc :active-screen :win-screen))
-      (-> (assoc game
-                 :current-player next-player
-                 :active-card nil
-                 :card-target nil
-                 :guard-guess nil)
-          (assoc-in [:players next-player :protected?] false)
-          (set-phase :draw)))))
-
-(defn score-game [game]
-  (-> game
-      :players
-      vals
-      (->>
-       (filter :alive?)
-       (mapv score-hand))))
-
-(defn determine-winner [game]
-  (->> game
-       score-game
-       (apply max-key :value)))
-
 (defn count-alive
   "Returns the number of players remaining"
   [game]
@@ -169,6 +141,33 @@
   [game]
   (or (= 1 (count-alive game))
       (empty? (:deck game))))
+
+(defn start-next-turn [game]
+  (let [current-player (:current-player game)
+        players        (utils/player-list game)
+        next-player    (utils/next-in-list players current-player)]
+    (if (game-complete? game)
+      (-> (utils/set-phase game :complete)
+          (assoc :active-screen :win-screen))
+      (-> (assoc game
+                 :current-player next-player
+                 :active-card nil
+                 :card-target nil
+                 :guard-guess nil)
+          (assoc-in [:players next-player :protected?] false)
+          (utils/set-phase :draw)))))
+
+(defn score-game [game]
+  (->> game
+       :players
+       vals
+       (filter :alive?)
+       (mapv score-hand)))
+
+(defn determine-winner [game]
+  (->> game
+       score-game
+       (apply max-key :value)))
 
 (defn countess-check
   "Checks the players hand for cards that cause the countess to

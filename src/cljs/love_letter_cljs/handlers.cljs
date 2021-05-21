@@ -5,11 +5,12 @@
             [love-letter-cljs.game :as g]
             [love-letter-cljs.ai :as ai]
             [cljs.core.match :refer-macros [match]]
-            [clojure.string :as s]))
+            [clojure.string :as s]
+            [love-letter-cljs.utils :as utils]))
 
 (def standard-middleware [(when ^boolean goog.DEBUG debug)
-                           (when ^boolean goog.DEBUG (after db/valid-schema?))
-                           trim-v])
+                          (when ^boolean goog.DEBUG (after db/valid-schema?))
+                          trim-v])
 
 (register-handler
  :initialize-db
@@ -21,7 +22,6 @@
  standard-middleware
  (fn [db [screen-key]]
    (assoc db :active-screen screen-key)))
-
 
 (defn reset-state [db]
   (merge db {:display-card nil
@@ -45,20 +45,17 @@
  (fn [db [_ face]]
    (assoc-in db [:display-card] face)))
 
-(defn set-phase [db phase]
-  (assoc-in db [:phase] phase))
-
 (defn- transition-phase [db from face]
   (match [from face]
-    [:draw _]         (set-phase db :play)
-    [:play :princess] (set-phase db :resolution)
-    [:play :handmaid] (set-phase db :resolution)
-    [:play :countess] (set-phase db :resolution)
-    [:play _]         (set-phase db :target)
-    [:target :guard]  (set-phase db :guard)
-    [:target _]       (set-phase db :resolution)
-    [:guard _]        (set-phase db :resolution)
-    [:resolution _]   (set-phase db :draw)))
+    [:draw _]         (utils/set-phase db :play)
+    [:play :princess] (utils/set-phase db :resolution)
+    [:play :handmaid] (utils/set-phase db :resolution)
+    [:play :countess] (utils/set-phase db :resolution)
+    [:play _]         (utils/set-phase db :target)
+    [:target :guard]  (utils/set-phase db :guard)
+    [:target _]       (utils/set-phase db :resolution)
+    [:guard _]        (utils/set-phase db :resolution)
+    [:resolution _]   (utils/set-phase db :draw)))
 
 (defn set-active-card-handler [db [face]]
   (-> db
@@ -70,7 +67,7 @@
 (register-handler
  :set-active-card
  [(undoable)
- standard-middleware]
+  standard-middleware]
  set-active-card-handler)
 
 (defn set-target-handler [db [target-id]]
@@ -87,20 +84,13 @@
 
 (defn set-guard-guess-handler [db [face]]
   (-> db
-       (assoc-in [:guard-guess] face)
-       (transition-phase :guard nil)))
+      (assoc-in [:guard-guess] face)
+      (transition-phase :guard nil)))
 
 (register-handler
  :set-guard-guess
  [(undoable) standard-middleware]
  set-guard-guess-handler)
-
-(defn player-list [game]
-  (->> game
-       :players
-       vals
-       (filter :alive?)
-       (mapv :id)))
 
 (defn retrieve-card [db face current-player]
   (->> (get-in db [:players current-player :hand])
