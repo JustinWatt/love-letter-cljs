@@ -25,11 +25,11 @@
 
 (defn reset-state [db]
   (merge db {:display-card nil
-             :phase :draw
-             :active-card nil
-             :guard-guess nil
-             :card-target nil
-             :log []}))
+             :phase        :draw
+             :active-card  nil
+             :guard-guess  nil
+             :card-target  nil
+             :log          []}))
 
 (register-handler
  :new-game
@@ -168,12 +168,12 @@
           (play-card (:active-card action) current-player)
           append-to-log
           resolve-effect
-          start-next-turn)
+          g/start-next-turn)
       (-> with-card-drawn
           (merge action)
           (play-card (:active-card action) current-player)
           (no-op-message (:active-card action))
-          start-next-turn))))
+          g/start-next-turn))))
 
 (register-handler
  :simulate-turn
@@ -188,7 +188,7 @@
        (play-card active-card current-player)
        append-to-log
        resolve-effect
-       start-next-turn)))
+       g/start-next-turn)))
 
 (register-handler
  :discard-without-effect
@@ -197,7 +197,7 @@
    (-> db
        (play-card active-card current-player)
        (no-op-message active-card)
-       start-next-turn)))
+       g/start-next-turn)))
 
 (register-handler
  :toggle-debug-mode

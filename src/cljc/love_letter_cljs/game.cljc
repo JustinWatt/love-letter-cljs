@@ -75,13 +75,31 @@
     :game/players        players
     :game/current-player 1}))
 
+(defn remove-first-match [p coll]
+  (let [[pre [first-match & post]] (split-with p coll)]
+    [first-match (vec (concat pre post))]))
+
+(defn first-item
+  "When combined with remove-first-match removes the first item from the collection"
+  [& _] false)
+
 (defn move-card
   "Move the first card from a source to a destination"
-  [game source destination]
-  (let [card (first (get-in game source))]
-    (-> game
-        (update-in source (comp vec rest))
-        (update-in destination conj card))))
+  ([game source destination]
+   (let [[card new-source] (remove-first-match first-item (get-in game source))]
+     (-> game
+         (assoc-in source new-source)
+         (update-in destination conj card)))))
+
+(defn move-played-card
+  "Move the played-card from the player's hand to the discard pile"
+  ([game face player-id]
+   (let [path              [:game/players player-id :player/hand]
+         [card new-source] (remove-first-match (comp #{face} :card/face) (get-in game path))]
+     (-> game
+         (assoc-in path new-source)
+         (update-in [:game/discard-pile] conj card)))))
+
 
 (defn deal-cards [game]
   (let [player-ids (keys (:game/players game))]
@@ -211,3 +229,50 @@
 
 (defn remove-protection [game]
   (assoc-in game [:game/players (:game/current-player game) :player/protected?] false))
+
+(defmulti play-card (fn [game card-face acting-player-id card-target guard-guess] card-face))
+(defmethod play-card :guard
+  [game _ _ card-target guard-guess]
+  (guard-ability game guard-guess card-target))
+(defmethod play-card :priest
+  [game _ acting-player-id card-target]
+  (reveal-card-to-player game acting-player-id card-target))
+(defmethod play-card :baron
+  [game _ acting-player-id card-target]
+  (baron-ability game acting-player-id card-target))
+(defmethod play-card :handmaid
+  [game _ acting-player-id _]
+  (handmaid-ability game acting-player-id))
+(defmethod play-card :prince
+  [game _ _ card-target]
+  (prince-ability game card-target))
+(defmethod play-card :king
+  [game _ acting-player-id card-target]
+  (king-ability game acting-player-id card-target))
+(defmethod play-card :countess
+  [game _ _ _]
+  game)
+(defmethod play-card :princess
+  [game _ acting-player-id _]
+  (kill-player game acting-player-id))
+
+(defmethod play-card :default [_ game _ _] game)
+
+(defn command|play-card
+  [{:keys [game acting-player-id card-face-to-play card-target guard-guess]}]
+  (cond
+    (not= acting-player-id (:game/current-player game)) {:error "It's not your turn"}
+
+    (not (contains? (set (utils/valid-targets game)) card-target)) {:error "Invalid Target"} ;; TODO: differentiate target status?
+
+    (and (= :guard card-face-to-play)
+         (contains? #{nil :guard} guard-guess)) {:error "Invalid Guard Guess"}
+
+    :else
+    (-> (play-card game card-face-to-play acting-player-id card-target guard-guess)
+        (move-played-card card-face-to-play acting-player-id))))
+
+(defn command|skip-turn
+  ;; TODO
+  [{:keys [game acting-player-id card-face-to-play card-target]}]
+  nil)
