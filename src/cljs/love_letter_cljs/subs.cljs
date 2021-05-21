@@ -2,12 +2,13 @@
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require [cljs.core.match :refer-macros [match]]
             [re-frame.core :refer [register-sub subscribe]]
-            [love-letter-cljs.utils :refer [valid-targets]]))
+            [love-letter-cljs.utils :refer [valid-targets]]
+            [love-letter-cljs.game :as game]))
 
 (register-sub
- :deck
+ :game/deck
  (fn [db]
-   (reaction (@db :deck))))
+   (reaction (@db :game/deck))))
 
 (register-sub
  :burn-pile
@@ -15,20 +16,20 @@
    (reaction (@db :burn-pile))))
 
 (register-sub
- :discard-pile
+ :game/discard-pile
  (fn [db]
-   (reaction (@db :discard-pile))))
+   (reaction (@db :game/discard-pile))))
 
 (register-sub
- :current-player
+ :game/current-player
  (fn [db]
-   (reaction (@db :current-player))))
+   (reaction (@db :game/current-player))))
 
 (register-sub
- :players
+ :game/players
  (fn [db]
    (reaction
-    (->> (@db :players)
+    (->> (@db :game/players)
          vals
          vec))))
 
@@ -43,15 +44,15 @@
    (reaction @db)))
 
 (register-sub
- :current-player-info
+ :game/current-player-info
  (fn [db]
-   (let [current-player (subscribe [:current-player])]
-     (reaction (get-in @db [:players @current-player])))))
+   (let [current-player (subscribe [:game/current-player])]
+     (reaction (get-in @db [:game/players @current-player])))))
 
 (register-sub
  :player-info
  (fn [db [_ player-id]]
-   (reaction (get-in @db [:players player-id]))))
+   (reaction (get-in @db [:game/players player-id]))))
 
 (register-sub
  :current-phase
@@ -126,21 +127,7 @@
     (let [{:keys [active-card card-target guard-guess]} @db]
       (resolvable? active-card (not-nil? card-target) (not-nil? guard-guess))))))
 
-(defn score-hand [player]
-  (let [hand (player :hand)]
-    (merge
-     (select-keys player [:id])
-     (select-keys (peek hand) [:face :value]))))
-
-(defn score-game [game]
-  (-> game
-      :players
-      vals
-      (->>
-       (filter :alive?)
-       (mapv score-hand))))
-
 (register-sub
  :score-game
  (fn [db]
-   (reaction (score-game @db))))
+   (reaction (game/score-game @db))))

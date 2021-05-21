@@ -93,21 +93,21 @@
  set-guard-guess-handler)
 
 (defn retrieve-card [db face current-player]
-  (->> (get-in db [:players current-player :hand])
-       (filter #(= face (:face %)))
+  (->> (get-in db [:game/players current-player :player/hand])
+       (filter #(= face (:card/face %)))
        first))
 
 (defn play-card [db face player-id]
-  (let [path           [:players player-id :hand]
+  (let [path           [:game/players player-id :player/hand]
         discarded-card (retrieve-card db face player-id)]
     (if (nil? discarded-card)
       (throw (js/Error. "Tried to discard a nil card"))
       (-> db
           (assoc-in path (u/remove-first (get-in db path) face))
-          (update-in [:discard-pile] conj discarded-card)))))
+          (update-in [:game/discard-pile] conj discarded-card)))))
 
 (defn handle-draw-card [db player-id]
-  (-> (g/move-card db [:deck] [:players player-id :hand])
+  (-> (g/move-card db [:game/deck] [:game/players player-id :player/hand])
       (set-phase :play)))
 
 (register-handler
@@ -153,7 +153,7 @@
            guard-guess)))
 
 (defn no-op-message [game active-card]
-  (update game :log conj (str "Player " (:current-player game) " plays the "
+  (update game :log conj (str "Player " (:game/current-player game) " plays the "
                               (s/capitalize (name active-card)) " with no effect")))
 
 (defn simulate-turn [game]

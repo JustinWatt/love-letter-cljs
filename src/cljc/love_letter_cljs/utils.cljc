@@ -2,22 +2,23 @@
 
 (defn find-card [game target]
   (-> game
-      (get-in [:players target :hand])
+      (get-in [:game/players target :player/hand])
       first))
 
-(defn- valid-target? [current-player {:keys [id protected? alive?]}]
+(defn- valid-target?
+  [current-player
+   {:player/keys [id protected? alive?]}]
   (and (not= current-player id)
        (and alive? (not protected?))))
 
-(defn valid-targets [{:keys [current-player] :as game}]
-  (-> game
-      :players
-      vals
-      (->> (filter (partial valid-target? current-player))
-           (map :id))))
+(defn valid-targets [{:keys [current-player players]}]
+  (->> players
+       vals
+       (filter (partial valid-target? current-player))
+       (map :player/id)))
 
 (defn remove-first [coll face]
-  (let [[pre post] (split-with #(not= face (:face %)) coll)]
+  (let [[pre post] (split-with #(not= face (:card/face %)) coll)]
     (vec (concat pre (rest post)))))
 
 ;; For cycling turns
@@ -29,10 +30,10 @@
 
 (defn player-list [game]
   (->> game
-       :players
+       :game/players
        vals
-       (filter :alive?)
-       (mapv :id)))
+       (filter :player/alive?)
+       (mapv :player/id)))
 
 (defn set-phase [game phase]
   (assoc-in game [:phase] phase))

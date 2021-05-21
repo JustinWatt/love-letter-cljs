@@ -27,14 +27,14 @@
      (map-indexed
       (fn [i card]
         ^{:key (str "card" i)}
-        [:li [play-button (:face card)]]) deck))])
+        [:li [play-button (:card/face card)]]) deck))])
 
 (defn draw-button [id]
   [:button {:type "button"
             :on-click #(dispatch [:draw-card id])} "Draw"])
 
 (defn player-component [player]
-  (let [{:keys [id hand alive? protected?]} player]
+  (let [{:player/keys [id hand alive? protected?]} player]
     [:div.col-md-6
      [:h5 (str "Player " id (when-not alive? " Out") (when protected? " Protected") ":")]
      [card-list hand]]))
@@ -87,13 +87,13 @@
                   [guard-guess-button face]) card-faces)])
 
 (defn game-controls []
-  (let [player-info  (subscribe [:current-player-info])
+  (let [player-info  (subscribe [:game/current-player-info])
         phase        (subscribe [:current-phase])]
     (fn []
       [:div [:h4 (str "Current phase" @phase)]
        (condp = @phase
-         :draw [:div [card-list (:hand @player-info)] [draw-button (:id @player-info)]]
-         :play [card-list-with-button (:hand @player-info) @phase]
+         :draw [:div [card-list (:player/hand @player-info)] [draw-button (:player/id @player-info)]]
+         :play [card-list-with-button (:player/hand @player-info) @phase]
          :target [target-control]
          :guard  [guard-control]
          :resolution [:button {:on-click #(dispatch [:resolve-effect])} "Resolve"]
@@ -150,11 +150,11 @@
    [:h4#start-button.text-center {:on-click #(dispatch [:set-active-screen :game-screen])} "Start"]])
 
 (defn main-panel []
-  (let [deck           (subscribe [:deck])
-        players        (subscribe [:players])
+  (let [deck           (subscribe [:game/deck])
+        players        (subscribe [:game/players])
         burn-pile      (subscribe [:burn-pile])
-        discard-pile   (subscribe [:discard-pile])
-        current-player (subscribe [:current-player])
+        discard-pile   (subscribe [:game/discard-pile])
+        current-player (subscribe [:game/current-player])
         db             (subscribe [:db])]
     (fn []
       [:div.container-fluid {:style {:color "white"}}
@@ -205,7 +205,7 @@
                   :width  "425px"
                   :background-color "black"}}
     (map-indexed (fn [i c]
-                   ^{:key (str i (:face c))}
+                   ^{:key (str i (:card/face c))}
                    [:div.discarded-card
                     {:style {:position "absolute"
                              :left (str (* 30 i) "px")
@@ -215,20 +215,20 @@
                              :border-color "black"
                              :border-style "solid"
                              :background-size "contain"
-                             :background-image (str "url(images/cardart/" (name (:face c)) ".png)")
+                             :background-image (str "url(images/cardart/" (name (:card/face c)) ".png)")
                              :border-width "2px"}}]) cards)]])
 
 (defn player-one-area [player-info phase active-player?]
   (let [player-info (subscribe [:player-info 1])
         phase       (subscribe [:phase])
-        current-player (subscribe [:current-player])]
+        current-player (subscribe [:game/current-player])]
     [:div (str player-info)
      [:div
       (map-indexed
        (fn [i c]
-         ^{:key (str i (:face c))}
+         ^{:key (str i (:card/face c))}
          [:div
-          {:on-click (when (= :play phase) #(dispatch [:set-active-card (:face c)]))
+          {:on-click (when (= :play phase) #(dispatch [:set-active-card (:card/face c)]))
            :style {:position "absolute"
                    :left (str (* 80 i) "px")
                    :width "65px"
@@ -237,8 +237,8 @@
                    :border-color "black"
                    :border-style "solid"
                    :background-size "contain"
-                   :background-image (str "url(images/cardart/" (name (:face c)) ".png)")
-                   :border-width "2px"}}]) (:hand player-info))]]))
+                   :background-image (str "url(images/cardart/" (name (:card/face c)) ".png)")
+                   :border-width "2px"}}]) (:player/hand player-info))]]))
 
 (defn menu-box-style [offset]
   {:style {:position "absolute"
@@ -254,12 +254,12 @@
   (let [click-index (reagent.core/atom nil)]
     (fn []
       [:div
-       (when (:protected? player-info) [:h3 "Protected"])
+       (when (:player/protected? player-info) [:h3 "Protected"])
        [:ul.selection-list
         (map-indexed
          (fn [i c] ^{:key (str i c)}
-           [:li.list-item {:on-click #(dispatch [:set-active-card (:face c)])}
-            (s/capitalize (str (name (:face c)) " " (apply str (:visible c))))]) (:hand player-info))]])))
+           [:li.list-item {:on-click #(dispatch [:set-active-card (:card/face c)])}
+            (s/capitalize (str (name (:card/face c)) " " (apply str (:card/visible c))))]) (:player/hand player-info))]])))
 
 (defn target-game-control []
   (let [display-target? (subscribe [:display-target?])
@@ -305,8 +305,8 @@
   (s/join
    (reduce
     (fn [string card]
-      (if (in? (:visible card) 1)
-        (concat string (face->symbol (:face card)))
+      (if (in? (:card/visible card) 1)
+        (concat string (face->symbol (:card/face card)))
         string)) "" hand)))
 
 (defn player-display [current-player players]
@@ -333,12 +333,12 @@
           [:li m]) (take-last 5 @log))])))
 
 (defn game-screen []
-  (let [deck              (subscribe [:deck])
-        discarded-cards   (subscribe [:discard-pile])
-        current-player-id (subscribe [:current-player])
+  (let [deck              (subscribe [:game/deck])
+        discarded-cards   (subscribe [:game/discard-pile])
+        current-player-id (subscribe [:game/current-player])
         phase             (subscribe [:current-phase])
         targets           (subscribe [:valid-targets])
-        players           (subscribe [:players])
+        players           (subscribe [:game/players])
         player-one-info   (subscribe [:player-info 1])
         resolvable?       (subscribe [:resolvable?])]
     (fn []
@@ -399,7 +399,7 @@
          (let [{:keys [id face value]} s]
            ^{:key (str id face value)}
            [:li (str "Player " id " with the " (s/capitalize (name face)) " (" value ")")]))
-       (reverse (sort-by :value scores)))]]))
+       (reverse (sort-by :card/value scores)))]]))
 
 (defn win-screen []
   (let [scores (subscribe [:score-game])]

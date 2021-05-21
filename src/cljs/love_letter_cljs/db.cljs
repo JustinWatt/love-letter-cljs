@@ -1,8 +1,6 @@
 (ns love-letter-cljs.db
   (:require [love-letter-cljs.game :refer [create-and-deal]]
-            [schema.core :as s
-             :include-macros true]
-            [love-letter-cljs.ai :as ai]))
+            [schema.core :as s :include-macros true]))
 
 (def card-face
   (s/enum :guard  :priest :baron    :handmaid
@@ -13,25 +11,25 @@
 
 (def player-id s/Int)
 
-(def card {:face card-face
-           :value s/Int
-           :visible [player-id]})
+(def card {:card/face card-face
+           :card/value s/Int
+           :card/visible [player-id]})
 
 (def card-pile [(s/maybe card)])
 
-(def player {:id     s/Int
-             :hand   card-pile
-             :alive? s/Bool
-             :protected? s/Bool
-             :personality ai-profile})
+(def player {:player/id     s/Int
+             :player/hand   card-pile
+             :player/alive? s/Bool
+             :player/protected? s/Bool
+             :player/personality ai-profile})
 
 (def app-schema
   {:active-screen (s/enum :title-screen :main-screen :debug-screen :game-screen :win-screen)
-   :deck         card-pile
-   :discard-pile card-pile
-   :burn-pile    card-pile
-   :players      {s/Int player}
-   :current-player player-id
+   :game/deck         card-pile
+   :game/discard-pile card-pile
+   :game/burn-pile    card-pile
+   :game/players      {s/Int player}
+   :game/current-player player-id
 
    :display-card (s/maybe card-face)
    :phase        (s/enum :draw :play :guard :target :resolution :complete)
@@ -57,5 +55,5 @@
   "validate the given db, writing any problems to console.error"
   [db]
   (let [res (s/check app-schema db)]
-    (if (some? res)
+    (when (some? res)
       (.error js/console (str "schema problem: " res)))))

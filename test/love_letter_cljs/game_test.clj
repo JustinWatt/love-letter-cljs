@@ -5,57 +5,57 @@
 ;; helpers
 (defn discard-n [game n]
   (->> game
-       (iterate #(sut/move-card % [:deck] [:discard-pile]))
+       (iterate #(sut/move-card % [:game/deck] [:game/discard-pile]))
        (drop n)
        first))
 
 ;; (create-and-deal)
 (def test-game-a
-  {:deck [{:face :guard,    :value 1 :visible []}
-          {:face :baron,    :value 3 :visible []}
-          {:face :priest,   :value 2 :visible []}
-          {:face :guard,    :value 1 :visible []}
-          {:face :handmaid, :value 4 :visible []}
-          {:face :prince,   :value 5 :visible []}
-          {:face :handmaid, :value 4 :visible []}
-          {:face :guard,    :value 1 :visible []}
-          {:face :princess, :value 8 :visible []}
-          {:face :baron,    :value 3 :visible []}
-          {:face :king,     :value 6 :visible []}],
-   :discard-pile [],
-   :players {1 {:id 1, :hand [{:face :guard,  :value 1 :visible []}], :alive? true, :protected? true},
-             2 {:id 2, :hand [{:face :priest, :value 2 :visible []}], :alive? false},
-             3 {:id 3, :hand [{:face :guard,  :value 1 :visible []}], :alive? true},
-             4 {:id 4, :hand [{:face :prince, :value 5 :visible []} {:face :countess, :value 7}], :alive? true}},
-   :current-player 1})
+  {:game/deck [{:card/face :guard,    :card/value 1 :card/visible []}
+               {:card/face :baron,    :card/value 3 :card/visible []}
+               {:card/face :priest,   :card/value 2 :card/visible []}
+               {:card/face :guard,    :card/value 1 :card/visible []}
+               {:card/face :handmaid, :card/value 4 :card/visible []}
+               {:card/face :prince,   :card/value 5 :card/visible []}
+               {:card/face :handmaid, :card/value 4 :card/visible []}
+               {:card/face :guard,    :card/value 1 :card/visible []}
+               {:card/face :princess, :card/value 8 :card/visible []}
+               {:card/face :baron,    :card/value 3 :card/visible []}
+               {:card/face :king,     :card/value 6 :card/visible []}],
+   :game/discard-pile [],
+   :game/players {1 {:player/id 1, :player/hand [{:card/face :guard,  :card/value 1 :card/visible []}], :player/alive? true, :player/protected? true},
+                  2 {:player/id 2, :player/hand [{:card/face :priest, :card/value 2 :card/visible []}], :player/alive? false},
+                  3 {:player/id 3, :player/hand [{:card/face :guard,  :card/value 1 :card/visible []}], :player/alive? true},
+                  4 {:player/id 4, :player/hand [{:card/face :prince, :card/value 5 :card/visible []} {:card/face :countess, :card/value 7}], :player/alive? true}},
+   :game/current-player 1})
 
 (def test-game-b
-  {:deck [{:face :guard,    :value 1 :visible []}
-          {:face :baron,    :value 3 :visible []}
-          {:face :priest,   :value 2 :visible []}
-          {:face :guard,    :value 1 :visible []}
-          {:face :handmaid, :value 4 :visible []}
-          {:face :prince,   :value 5 :visible []}
-          {:face :handmaid, :value 4 :visible []}
-          {:face :guard,    :value 1 :visible []}
-          {:face :princess, :value 8 :visible []}
-          {:face :baron,    :value 3 :visible []}
-          {:face :prince,   :value 5 :visible []}
-          {:face :king,     :value 6 :visible []}],
-   :discard-pile [],
-   :players {1 {:id 1, :hand [{:face :guard,  :value 1 :visible []}], :alive? true},
-             2 {:id 2, :hand [{:face :priest, :value 2 :visible []}], :alive? true},
-             3 {:id 3, :hand [{:face :guard,  :value 1 :visible []}], :alive? true},
-             4 {:id 4, :hand [{:face :countess, :value 7 :visible []}], :alive? true}},
-   :current-player 1})
+  {:game/deck [{:card/face :guard,    :card/value 1 :card/visible []}
+               {:card/face :baron,    :card/value 3 :card/visible []}
+               {:card/face :priest,   :card/value 2 :card/visible []}
+               {:card/face :guard,    :card/value 1 :card/visible []}
+               {:card/face :handmaid, :card/value 4 :card/visible []}
+               {:card/face :prince,   :card/value 5 :card/visible []}
+               {:card/face :handmaid, :card/value 4 :card/visible []}
+               {:card/face :guard,    :card/value 1 :card/visible []}
+               {:card/face :princess, :card/value 8 :card/visible []}
+               {:card/face :baron,    :card/value 3 :card/visible []}
+               {:card/face :prince,   :card/value 5 :card/visible []}
+               {:card/face :king,     :card/value 6 :card/visible []}],
+   :game/discard-pile [],
+   :game/players {1 {:player/id 1, :player/hand [{:card/face :guard,  :card/value 1 :card/visible []}], :player/alive? true},
+                  2 {:player/id 2, :player/hand [{:card/face :priest, :card/value 2 :card/visible []}], :player/alive? true},
+                  3 {:player/id 3, :player/hand [{:card/face :guard,  :card/value 1 :card/visible []}], :player/alive? true},
+                  4 {:player/id 4, :player/hand [{:card/face :countess, :card/value 7 :card/visible []}], :player/alive? true}},
+   :game/current-player 1})
 ;; tests
 
 (deftest correct-card-count
   (is (= {:guard 5 :priest 2 :baron 2 :handmaid 2
           :prince 2 :king 1 :countess 1 :princess 1}
          (->> (sut/create-game)
-              :deck
-              (map :face)
+              :game/deck
+              (map :card/face)
               frequencies))))
 
 (deftest baron-ability-test
@@ -63,32 +63,32 @@
     (is (= false
            (-> test-game-a
                (sut/baron-ability 1 2)
-               (get-in [:players 1 :alive?]))))))
+               (get-in [:game/players 1 :player/alive?]))))))
 
 (deftest guard-ability-test
   (testing "When the target's card is correctly guessed they are knocked out"
     (is (= false
            (-> test-game-a
                (sut/guard-ability :priest 2)
-               (get-in [:players 2 :alive?]))))))
+               (get-in [:game/players 2 :player/alive?]))))))
 
 (deftest king-ability-test
   (testing "Target gains players card"
-    (is (= [{:face :guard :value 1 :visible [1]}]
+    (is (= [{:card/face :guard :card/value 1 :card/visible [1]}]
            (-> test-game-a
                (sut/king-ability 1 2)
-               (get-in [:players 2 :hand])))))
+               (get-in [:game/players 2 :player/hand])))))
   (testing "Player gains targets card"
-    (is (= [{:face :priest :value 2 :visible [2]}]
+    (is (= [{:card/face :priest :card/value 2 :card/visible [2]}]
            (-> test-game-a
                (sut/king-ability 1 2)
-               (get-in [:players 1 :hand]))))))
+               (get-in [:game/players 1 :player/hand]))))))
 
 (deftest prince-ability-test
-  (is (= [{:face :guard :value 1 :visible []}]
+  (is (= [{:card/face :guard :card/value 1 :card/visible []}]
          (-> test-game-a
              (sut/prince-ability 2)
-             (get-in [:players 2 :hand])))))
+             (get-in [:game/players 2 :player/hand])))))
 
 (deftest game-complete-non-empty-deck
   (is (= false
@@ -114,7 +114,7 @@
   (is (= false
          (-> test-game-a
              sut/remove-protection
-             (get-in [:players 1 :protected?])))))
+             (get-in [:game/players 1 :player/protected?])))))
 
 (deftest count-alive-test
   (is (= 3 (-> test-game-a sut/count-alive))))
@@ -123,13 +123,13 @@
   (is (= [1]
          (-> test-game-a
              (sut/reveal-card-to-player 1 2)
-             (get-in [:players 2 :hand])
+             (get-in [:game/players 2 :player/hand])
              first
-             :visible))))
+             :card/visible))))
 
 (deftest move-card-test
-  (is (= {:face :guard :value 1 :visible []}
+  (is (= {:card/face :guard :card/value 1 :card/visible []}
          (-> test-game-a
-             (sut/move-card [:deck] [:discard-pile])
-             (get-in [:discard-pile])
+             (sut/move-card [:game/deck] [:game/discard-pile])
+             (get-in [:game/discard-pile])
              first))))
