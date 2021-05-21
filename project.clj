@@ -1,43 +1,39 @@
 (defproject love-letter-cljs "0.1.1-SNAPSHOT"
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/clojurescript "1.8.40"]
+  :dependencies [[org.clojure/clojure "1.10.0"]
+                 [org.clojure/clojurescript "1.10.520"]
                  [reagent "0.6.0-alpha"]
                  [re-frame "0.7.0"]
                  [prismatic/schema "1.1.0"]
-                 [org.clojure/core.match "0.3.0-alpha4"]]
+                 [org.clojure/core.match "1.0.0"]]
 
   :min-lein-version "2.5.3"
 
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
 
-  :plugins [[lein-cljsbuild "1.1.3"]
-            [lein-doo "0.1.6"]]
+  :plugins [[lein-cljsbuild "1.1.7"]
+            [lein-cljfmt "0.6.4"]]
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"
                                     "test/js"]
 
+  :profiles {:dev  {:dependencies [[nrepl "0.8.3"]
+                                   [cider/piggieback "0.5.2"]]
+                    :source-paths ["cljs_src" "dev"]}}
 
-  :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]
-                                  [figwheel-sidecar "0.5.0-2"]]
-                   :source-paths ["cljs_src" "dev"]}
-             :repl {:plugins [[cider/cider-nrepl "0.16.0-snapshot"]]}}
+  :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
 
-  :figwheel-options {:port 7888}
-
-  :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
-
-  :cljsbuild {:builds [{:id "dev"
+  :cljsbuild {:builds [{:id           "dev"
                         :source-paths ["src/cljs" "src/cljc"]
-                        :compiler {:main love-letter-cljs.core
-                                   :output-to "resources/public/js/compiled/app.js"
-                                   :output-dir "resources/public/js/compiled/out"
-                                   :asset-path "js/compiled/out"
-                                   :source-map-timestamp true}}
+                        :compiler     {:main                 love-letter-cljs.core
+                                       :output-to            "resources/public/js/compiled/app.js"
+                                       :output-dir           "resources/public/js/compiled/out"
+                                       :asset-path           "js/compiled/out"
+                                       :source-map-timestamp true}}
 
-                       {:id "min"
+                       {:id           "min"
                         :source-paths ["src/cljs" "src/cljc"]
-                        :compiler {:main love-letter-cljs.core
-                                   :output-to "resources/public/js/compiled/app.js"
-                                   :optimizations :advanced
-                                   :closure-defines {goog.DEBUG false}
-                                   :pretty-print false}}]})
+                        :compiler     {:main            love-letter-cljs.core
+                                       :output-to       "resources/public/js/compiled/app.js"
+                                       :optimizations   :advanced
+                                       :closure-defines {goog.DEBUG false}
+                                       :pretty-print    false}}]})
